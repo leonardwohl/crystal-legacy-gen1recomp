@@ -103,10 +103,17 @@ in the mod.
 
 ## Releasing
 
-All mods share one version. To release, bump `VERSION` in `tools/build.py`,
-rebuild, then push a matching tag (e.g. `v0.2.0`). The **Package mods** workflow
-attaches every `<id>-<version>.zip` to a GitHub release. gen1recomp's updater
-reads the version from the tag, then picks each mod's own zip from that release.
+All mods share one version. To release, bump `VERSION` in `tools/build.py`
+(and `legacy_hard_mode`'s manifest), rebuild, push, then either:
+
+- **Actions → Package mods → Run workflow**, with the version (e.g. `v0.2.0`).
+  It creates the tag and the release on the chosen commit.
+- Or create a release for a new `v…` tag in GitHub's Releases page, or push
+  such a tag; the workflow attaches the zips to it.
+
+Every `<id>-<version>.zip` is attached to the release. gen1recomp's updater
+reads the version from the tag, then picks each mod's own zip from that
+release.
 
 ## License
 

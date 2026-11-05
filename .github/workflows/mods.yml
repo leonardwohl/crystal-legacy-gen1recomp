@@ -2,7 +2,10 @@ name: Package mods
 
 # Every push and pull request: zip each mod and upload it as its own
 # artifact, so any one of them can be downloaded and tried on its own.
-# A pushed tag like v0.2.0: also publish a release with every mod's zip.
+# A release (every mod's zip attached) is published either by pushing a tag
+# like v0.2.0, by creating a release for such a tag in GitHub's UI, or from
+# Actions -> Package mods -> Run workflow with a version, which creates the
+# tag on the selected commit itself.
 # All mods share one version (gen1recomp's updater reads the version from the
 # release tag and then picks <id>-<version>.zip from that release's assets).
 
@@ -11,9 +14,20 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to create, e.g. v0.2.0 (must match the manifests)"
+        required: true
 
 permissions:
   contents: read
+
+env:
+  # The release tag for this run, or empty when this run is not a release.
+  TAG: ${{ github.event.inputs.version || (github.event_name == 'release' && github.event.release.tag_name) || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
 
 jobs:
   list:
@@ -36,8 +50,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Zip ${{ matrix.mod }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            python3 tools/package.py --out dist --version "${GITHUB_REF_NAME}" "${{ matrix.mod }}"
+          if [[ -n "$TAG" ]]; then
+            python3 tools/package.py --out dist --version "$TAG" "${{ matrix.mod }}"
           else
             python3 tools/package.py --out dist "${{ matrix.mod }}"
           fi
@@ -48,7 +62,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ github.event.inputs.version || github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') }}
     needs: package
     runs-on: ubuntu-latest
     permissions:
@@ -62,5 +76,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.zip \
-            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+          # Attach to an existing release for this tag (one made in the UI),
+          # or create it, and the tag with it, on this run's commit.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" dist/*.zip --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+          fi
