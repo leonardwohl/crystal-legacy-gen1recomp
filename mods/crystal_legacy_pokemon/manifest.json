@@ -14,6 +14,7 @@
   "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
+  "permissions": [],
   "description": "Crystal Legacy's base stats, learnsets, TM/HM and egg moves, evolutions and move changes. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

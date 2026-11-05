@@ -2,6 +2,74 @@
 -- Crystal Legacy: Shop Changes: Crystal Legacy's shop stock and item prices.
 
 local DATA = {
+  clerks = {
+    {
+      map = "GOLDENROD_FLOWER_SHOP",
+      movement = 6,
+      sprite = "SPRITE_CLERK",
+      tiers = { { mart = 1004, minBadges = 7 }, { mart = 1003 } },
+      x = 5,
+      y = 3,
+    },
+  },
+  customMarts = {
+    [1000] = {
+      "TM_SUNNY_DAY",
+      "TM_RAIN_DANCE",
+      "TM_SANDSTORM",
+      "TM_PROTECT",
+      "TM_ENDURE",
+      "TM_EARTHQUAKE",
+      "TM_SOLARBEAM",
+      "TM_PSYCHIC_M",
+      "TM_ZAP_CANNON",
+    },
+    [1001] = {
+      "TM_MUD_SLAP",
+      "TM_FURY_CUTTER",
+      "TM_ATTRACT",
+      "TM_SHADOW_BALL",
+      "TM_DYNAMICPUNCH",
+      "TM_ICY_WIND",
+      "TM_IRON_TAIL",
+      "TM_DRAGONBREATH",
+      "TM_TOXIC",
+      "TM_GIGA_DRAIN",
+    },
+    [1002] = {
+      "TM_HIDDEN_POWER",
+      "TM_SWAGGER",
+      "TM_SNORE",
+      "TM_SLEEP_TALK",
+      "TM_SWEET_SCENT",
+      "TM_RETURN",
+      "TM_DREAM_EATER",
+      "TM_CURSE",
+      "TM_REST",
+    },
+    [1003] = {
+      "BERRY",
+      "BITTER_BERRY",
+      "BURNT_BERRY",
+      "ICE_BERRY",
+      "MINT_BERRY",
+      "MYSTERYBERRY",
+      "PRZCUREBERRY",
+      "PSNCUREBERRY",
+    },
+    [1004] = {
+      "BERRY",
+      "BITTER_BERRY",
+      "BURNT_BERRY",
+      "ICE_BERRY",
+      "MINT_BERRY",
+      "MYSTERYBERRY",
+      "PRZCUREBERRY",
+      "PSNCUREBERRY",
+      "GOLD_BERRY",
+      "MIRACLEBERRY",
+    },
+  },
   items = {
     BERRY = { price = 200 },
     BITTER_BERRY = { price = 250 },
@@ -155,6 +223,12 @@ local DATA = {
       "FLOWER_MAIL",
     },
   },
+  upgrades = {
+    { badges = 16, custom = 1000, map = "CELADON_DEPT_STORE_3F", vanillaMart = 25 },
+    { badges = 16, custom = 1001, map = "CELADON_DEPT_STORE_5F", vanillaMart = 27 },
+    { badges = 16, custom = 1002, map = "CELADON_DEPT_STORE_5F", vanillaMart = 28 },
+  },
+  varBadges = 7,
 }
 
 -- Patch one record, logging instead of aborting when gen1recomp refuses it,
@@ -206,6 +280,123 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
   end)
 end
 
+local function copy(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = copy(x) end
+  return out
+end
+
+local function setScript(mod, verb, id, rows, stats)
+  local reg = mod.content.map_scripts
+  local ok, err = pcall(reg[verb], reg, id, rows)
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("map script %s: %s", id, tostring(err))
+  end
+end
+
+local function martIdOf(row)
+  if row.mart or row.martId then return row.mart or row.martId end
+  local a = row.args
+  return a and ((a[2] or 0) + (a[3] or 0) * 256) or nil
+end
+
+-- gen1recomp's mart ids are a closed set (vanilla's 34), so Legacy's new
+-- stock lists get ids from 1000 up, and the mart screen is wrapped to serve
+-- them. Vanilla ids pass straight through to the normal screen.
+local function wrapMartScreen(mod, stats)
+  local ok, MartMenu = pcall(require, "src.ui.gen2.MartMenu")
+  if not (ok and MartMenu and MartMenu.new) then
+    mod.log:warn("mart screen not found; new shops disabled")
+    stats.failed = stats.failed + 1
+    return false
+  end
+  mod.content.screens:register("Gen2MartMenu", {
+    new = function(game, opts, ...)
+      local list = opts and DATA.customMarts[opts.martId]
+      if list then
+        -- Shallow: opts.save must stay the live save, or purchases would be
+        -- charged to a copy.
+        local o = {}
+        for k, v in pairs(opts) do o[k] = v end
+        opts = o
+        opts.marts = { lists = { list } }
+        opts.martId = 0
+      end
+      return MartMenu.new(game, opts, ...)
+    end,
+  })
+  return true
+end
+
+-- A clerk whose vanilla script opens `vanillaMart` gets Legacy's badge check:
+-- with enough badges they open the upgraded stock instead.
+local function upgradeClerk(mod, U, stats)
+  local map = mod.content.maps:get(U.map)
+  for _, obj in ipairs(map and map.objects or {}) do
+    local rows = obj.scriptKey and mod.content.map_scripts:get(obj.scriptKey)
+    local sells = false
+    for _, row in ipairs(rows or {}) do
+      if type(row) == "table" and row.op == "pokemart" and martIdOf(row) == U.vanillaMart then
+        sells = true
+      end
+    end
+    if sells then
+      local base = ("crystal_legacy_shops:%s:%d"):format(U.map, obj.index or 0)
+      setScript(mod, "register", base .. ":vanilla", copy(rows), stats)
+      setScript(mod, "register", base .. ":upgraded", {
+        { op = "faceplayer" }, { op = "opentext" },
+        { op = "pokemart", martType = 0, mart = U.custom },
+        { op = "closetext" }, { op = "end" },
+      }, stats)
+      setScript(mod, "override", obj.scriptKey, {
+        { op = "readvar", var = DATA.varBadges },
+        { op = "ifgreater", value = U.badges - 1, script = base .. ":upgraded" },
+        { op = "sjump", script = base .. ":vanilla" },
+      }, stats)
+      return
+    end
+  end
+  mod.log:warn("%s: no clerk sells mart %d; upgrade skipped", U.map, U.vanillaMart)
+  stats.failed = stats.failed + 1
+end
+
+-- A brand-new clerk NPC (Legacy's Goldenrod Flower Shop berry seller).
+local function addClerk(mod, C, stats)
+  local map = mod.content.maps:get(C.map)
+  if not (map and map.objects) then
+    mod.log:warn("%s not found; clerk skipped", C.map)
+    stats.failed = stats.failed + 1
+    return
+  end
+  local key = "crystal_legacy_shops:" .. C.map .. ":clerk"
+  local rows = { { op = "faceplayer" }, { op = "opentext" },
+                 { op = "readvar", var = DATA.varBadges } }
+  for _, tier in ipairs(C.tiers) do
+    if tier.minBadges then
+      rows[#rows + 1] = { op = "ifgreater", value = tier.minBadges - 1,
+                          script = key .. ":" .. tier.mart }
+    end
+  end
+  local fallback = C.tiers[#C.tiers].mart
+  for _, tier in ipairs(C.tiers) do
+    setScript(mod, "register", key .. ":" .. tier.mart, {
+      { op = "pokemart", martType = 0, mart = tier.mart },
+      { op = "closetext" }, { op = "end" },
+    }, stats)
+  end
+  rows[#rows + 1] = { op = "sjump", script = key .. ":" .. fallback }
+  setScript(mod, "register", key, rows, stats)
+  local objects = map.objects
+  objects[#objects + 1] = {
+    index = #objects + 1, sprite = C.sprite, x = C.x, y = C.y,
+    movement = C.movement, radius = { x = 0, y = 0 }, hours = { -1, -1 },
+    palette = 0, type = 0, sight = 0, scriptKey = key,
+  }
+  patch(mod, "maps", C.map, { objects = objects }, stats)
+end
+
 return function(mod)
   local stats = { applied = 0, failed = 0 }
 
@@ -213,5 +404,9 @@ return function(mod)
     if mod.content.items:get(id) then patch(mod, "items", id, fields, stats) end
   end)
   each(DATA.marts, function(id, items) patch(mod, "marts", id, items, stats) end)
+  if wrapMartScreen(mod, stats) then
+    for _, U in ipairs(DATA.upgrades) do upgradeClerk(mod, U, stats) end
+    for _, C in ipairs(DATA.clerks) do addClerk(mod, C, stats) end
+  end
   mod.log:info("Crystal Legacy: Shop Changes: %d patches applied, %d refused", stats.applied, stats.failed)
 end

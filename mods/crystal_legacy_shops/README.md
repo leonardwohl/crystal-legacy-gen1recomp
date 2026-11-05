@@ -6,7 +6,8 @@ Crystal Legacy's shop stock and item prices.
 
 - 13 shops restocked
 - 38 item prices changed
-- Crystal Legacy's 5 new shops are not in yet (they need clerk scripts)
+- Celadon Dept. Store 3F and 5F clerks sell Legacy's extra TMs once you have all 16 badges
+- New berry clerk in the Goldenrod Flower Shop (more berries from 7 badges)
 
 Games: crystal. Needs gen1recomp >=0.4.0 <0.5.0.
 

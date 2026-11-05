@@ -121,6 +121,21 @@ def build(base):
                   {"op": "setevent", "event": events[member_event]}, {"op": "end"}]
         scripts[key] = [{"op": "faceplayer"}, {"op": "opentext"}] + battle
         scripts[key + ":mid"] = [dict(r) for r in battle]  # a label inside the same script
+    # Shop clerks, shaped like vanilla: faceplayer / opentext / pokemart.
+    mart_ids = __import__("asm").const_values(os.path.join(base, "constants/mart_constants.asm"))
+    for mid, marts in (("CELADON_DEPT_STORE_3F", ["MART_CELADON_3F"]),
+                       ("CELADON_DEPT_STORE_5F", ["MART_CELADON_5F_1", "MART_CELADON_5F_2"])):
+        objs = []
+        for i, m in enumerate(marts, 1):
+            key = "fx:%s:%d" % (mid, i)
+            n = mart_ids[m]
+            scripts[key] = [{"op": "faceplayer"}, {"op": "opentext"},
+                            {"op": "pokemart", "args": [0, n % 256, n // 256]},
+                            {"op": "closetext"}, {"op": "end"}]
+            objs.append({"index": i, "sprite": "SPRITE_CLERK", "x": i, "y": 1, "scriptKey": key})
+        maps[mid] = {"id": mid, "name": mid, "objects": objs}
+    maps["GOLDENROD_FLOWER_SHOP"] = {"id": "GOLDENROD_FLOWER_SHOP", "name": "GOLDENROD_FLOWER_SHOP",
+        "objects": [{"index": 1, "sprite": "SPRITE_TEACHER", "x": 2, "y": 4, "scriptKey": "fx:guide"}]}
     return {
         "gen2Maps": maps, "gen2Scripts": scripts, "gen2Text": texts,
         "pokemon": pokemon, "moves": moves, "items": items,

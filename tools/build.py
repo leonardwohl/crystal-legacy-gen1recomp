@@ -166,16 +166,170 @@ def build_ghost_dark(ctx):
                         "Dark-type moves use Attack / Defense"]
 
 
+SHOPS_RUNTIME = r"""
+local function copy(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = copy(x) end
+  return out
+end
+
+local function setScript(mod, verb, id, rows, stats)
+  local reg = mod.content.map_scripts
+  local ok, err = pcall(reg[verb], reg, id, rows)
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("map script %s: %s", id, tostring(err))
+  end
+end
+
+local function martIdOf(row)
+  if row.mart or row.martId then return row.mart or row.martId end
+  local a = row.args
+  return a and ((a[2] or 0) + (a[3] or 0) * 256) or nil
+end
+
+-- gen1recomp's mart ids are a closed set (vanilla's 34), so Legacy's new
+-- stock lists get ids from 1000 up, and the mart screen is wrapped to serve
+-- them. Vanilla ids pass straight through to the normal screen.
+local function wrapMartScreen(mod, stats)
+  local ok, MartMenu = pcall(require, "src.ui.gen2.MartMenu")
+  if not (ok and MartMenu and MartMenu.new) then
+    mod.log:warn("mart screen not found; new shops disabled")
+    stats.failed = stats.failed + 1
+    return false
+  end
+  mod.content.screens:register("Gen2MartMenu", {
+    new = function(game, opts, ...)
+      local list = opts and DATA.customMarts[opts.martId]
+      if list then
+        -- Shallow: opts.save must stay the live save, or purchases would be
+        -- charged to a copy.
+        local o = {}
+        for k, v in pairs(opts) do o[k] = v end
+        opts = o
+        opts.marts = { lists = { list } }
+        opts.martId = 0
+      end
+      return MartMenu.new(game, opts, ...)
+    end,
+  })
+  return true
+end
+
+-- A clerk whose vanilla script opens `vanillaMart` gets Legacy's badge check:
+-- with enough badges they open the upgraded stock instead.
+local function upgradeClerk(mod, U, stats)
+  local map = mod.content.maps:get(U.map)
+  for _, obj in ipairs(map and map.objects or {}) do
+    local rows = obj.scriptKey and mod.content.map_scripts:get(obj.scriptKey)
+    local sells = false
+    for _, row in ipairs(rows or {}) do
+      if type(row) == "table" and row.op == "pokemart" and martIdOf(row) == U.vanillaMart then
+        sells = true
+      end
+    end
+    if sells then
+      local base = ("crystal_legacy_shops:%s:%d"):format(U.map, obj.index or 0)
+      setScript(mod, "register", base .. ":vanilla", copy(rows), stats)
+      setScript(mod, "register", base .. ":upgraded", {
+        { op = "faceplayer" }, { op = "opentext" },
+        { op = "pokemart", martType = 0, mart = U.custom },
+        { op = "closetext" }, { op = "end" },
+      }, stats)
+      setScript(mod, "override", obj.scriptKey, {
+        { op = "readvar", var = DATA.varBadges },
+        { op = "ifgreater", value = U.badges - 1, script = base .. ":upgraded" },
+        { op = "sjump", script = base .. ":vanilla" },
+      }, stats)
+      return
+    end
+  end
+  mod.log:warn("%s: no clerk sells mart %d; upgrade skipped", U.map, U.vanillaMart)
+  stats.failed = stats.failed + 1
+end
+
+-- A brand-new clerk NPC (Legacy's Goldenrod Flower Shop berry seller).
+local function addClerk(mod, C, stats)
+  local map = mod.content.maps:get(C.map)
+  if not (map and map.objects) then
+    mod.log:warn("%s not found; clerk skipped", C.map)
+    stats.failed = stats.failed + 1
+    return
+  end
+  local key = "crystal_legacy_shops:" .. C.map .. ":clerk"
+  local rows = { { op = "faceplayer" }, { op = "opentext" },
+                 { op = "readvar", var = DATA.varBadges } }
+  for _, tier in ipairs(C.tiers) do
+    if tier.minBadges then
+      rows[#rows + 1] = { op = "ifgreater", value = tier.minBadges - 1,
+                          script = key .. ":" .. tier.mart }
+    end
+  end
+  local fallback = C.tiers[#C.tiers].mart
+  for _, tier in ipairs(C.tiers) do
+    setScript(mod, "register", key .. ":" .. tier.mart, {
+      { op = "pokemart", martType = 0, mart = tier.mart },
+      { op = "closetext" }, { op = "end" },
+    }, stats)
+  end
+  rows[#rows + 1] = { op = "sjump", script = key .. ":" .. fallback }
+  setScript(mod, "register", key, rows, stats)
+  local objects = map.objects
+  objects[#objects + 1] = {
+    index = #objects + 1, sprite = C.sprite, x = C.x, y = C.y,
+    movement = C.movement, radius = { x = 0, y = 0 }, hours = { -1, -1 },
+    palette = 0, type = 0, sight = 0, scriptKey = key,
+  }
+  patch(mod, "maps", C.map, { objects = objects }, stats)
+end
+"""
+
+
 def build_shops(ctx):
-    data = {"marts": ctx["marts"], "items": ctx["items"]}
+    base, leg = ctx["base"], ctx["legacy"]
+    lmarts = D.parse.marts(leg)
+    vmart = const_values(os.path.join(base, "constants/mart_constants.asm"))
+    move = const_values(os.path.join(base, "constants/map_object_constants.asm"))
+    new = ["MART_CELADON_3F_2", "MART_CELADON_5F_1_2", "MART_CELADON_5F_2_2",
+           "MART_BERRYS", "MART_BERRYS_2"]
+    custom = {1000 + i: lmarts[m] for i, m in enumerate(new)}
+    cid = {m: 1000 + i for i, m in enumerate(new)}
+    data = {
+        "marts": ctx["marts"], "items": ctx["items"], "customMarts": custom,
+        "varBadges": 7,
+        # Celadon Dept. Store: Legacy's clerks switch to these TM lists at 16 badges.
+        "upgrades": [
+            {"map": "CELADON_DEPT_STORE_3F", "vanillaMart": vmart["MART_CELADON_3F"],
+             "custom": cid["MART_CELADON_3F_2"], "badges": 16},
+            {"map": "CELADON_DEPT_STORE_5F", "vanillaMart": vmart["MART_CELADON_5F_1"],
+             "custom": cid["MART_CELADON_5F_1_2"], "badges": 16},
+            {"map": "CELADON_DEPT_STORE_5F", "vanillaMart": vmart["MART_CELADON_5F_2"],
+             "custom": cid["MART_CELADON_5F_2_2"], "badges": 16},
+        ],
+        # maps/GoldenrodFlowerShop.asm: object_event 5, 3, SPRITE_CLERK,
+        # SPRITEMOVEDATA_STANDING_DOWN ... BerryMartScript (7+ badges: more berries).
+        "clerks": [
+            {"map": "GOLDENROD_FLOWER_SHOP", "x": 5, "y": 3, "sprite": "SPRITE_CLERK",
+             "movement": move["SPRITEMOVEDATA_STANDING_DOWN"],
+             "tiers": [{"minBadges": 7, "mart": cid["MART_BERRYS_2"]},
+                       {"mart": cid["MART_BERRYS"]}]},
+        ],
+    }
     body = '''
   each(DATA.items, function(id, fields)
     if mod.content.items:get(id) then patch(mod, "items", id, fields, stats) end
   end)
-  each(DATA.marts, function(id, items) patch(mod, "marts", id, items, stats) end)'''
+  each(DATA.marts, function(id, items) patch(mod, "marts", id, items, stats) end)
+  if wrapMartScreen(mod, stats) then
+    for _, U in ipairs(DATA.upgrades) do upgradeClerk(mod, U, stats) end
+    for _, C in ipairs(DATA.clerks) do addClerk(mod, C, stats) end
+  end'''
     return data, body, ["%d shops restocked" % len(ctx["marts"]),
                         "%d item prices changed" % len(ctx["items"]),
-                        "Crystal Legacy's 5 new shops are not in yet (they need clerk scripts)"]
+                        "Celadon Dept. Store 3F and 5F clerks sell Legacy's extra TMs "
+                        "once you have all 16 badges",
+                        "New berry clerk in the Goldenrod Flower Shop (more berries from 7 badges)"]
 
 # ----------------------------------------------------------------- rematches
 REMATCH_RUNTIME = r"""
@@ -457,6 +611,7 @@ MODS = [
      "summary": "Ghost moves become special and Dark moves physical, as in Crystal Legacy."},
     {"id": "crystal_legacy_shops", "name": "Crystal Legacy: Shop Changes",
      "category": "BALANCE", "games": ["crystal"], "build": build_shops,
+     "runtime": SHOPS_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's shop stock and item prices."},
     {"id": "crystal_legacy_rematches", "name": "Crystal Legacy: Rematches",
      "category": "CONTENT", "games": ["crystal"], "build": build_rematches,
@@ -503,7 +658,7 @@ def write_mod(spec, ctx):
         "games": spec["games"], "entry": "main.lua", "profile": "content",
         "category": spec["category"], "game_version": GAME_VERSION, "priority": 100,
         "dependencies": [], "optional_dependencies": spec.get("optional_dependencies", []),
-        "conflicts": [],
+        "conflicts": [], "permissions": spec.get("permissions", []),
         "description": spec["summary"] + " Unofficial port of Pokémon Crystal Legacy.",
         "github": GITHUB,
     }

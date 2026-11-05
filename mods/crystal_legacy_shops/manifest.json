@@ -14,6 +14,9 @@
   "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
+  "permissions": [
+    "engine_internals"
+  ],
   "description": "Crystal Legacy's shop stock and item prices. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

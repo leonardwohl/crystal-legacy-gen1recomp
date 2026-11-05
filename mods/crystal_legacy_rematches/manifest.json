@@ -16,6 +16,7 @@
     "crystal_legacy_trainers"
   ],
   "conflicts": [],
+  "permissions": [],
   "description": "Rematch every gym leader after the Elite Four, and the Elite Four themselves once you have all 16 badges. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

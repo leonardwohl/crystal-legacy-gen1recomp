@@ -177,6 +177,39 @@ local CHECKS = {
   end,
   crystal_legacy_shops = function()
     T.eq(data.gen2Marts.lists ~= nil, true, "shops: mart table present")
+    local Vm = require("src.script.gen2.Vm")
+    local Events = require("src.world.gen2.Events")
+    local function shop(key, badges)
+      local opened
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, Events.new(), {
+        showText = function(_, onDone) if onDone then onDone() end end,
+        readVar = function(id) return id == 7 and badges or 0 end,
+        openMart = function(_, martId, done) opened = martId done() end,
+      })
+      vm:start(key)
+      for _ = 1, 200 do if not vm:running() then break end vm:update() end
+      return opened
+    end
+    T.eq(shop("fx:CELADON_DEPT_STORE_5F:1", 8), 27, "shops: 5F clerk 1 vanilla stock before 16 badges")
+    T.eq(shop("fx:CELADON_DEPT_STORE_5F:1", 16), 1001, "shops: 5F clerk 1 upgraded at 16 badges")
+    T.eq(shop("fx:CELADON_DEPT_STORE_5F:2", 16), 1002, "shops: 5F clerk 2 upgraded at 16 badges")
+    T.eq(shop("fx:CELADON_DEPT_STORE_3F:1", 16), 1000, "shops: 3F clerk upgraded at 16 badges")
+    local fs = data.gen2Maps.GOLDENROD_FLOWER_SHOP.objects
+    local clerk = fs[#fs]
+    T.eq(clerk.sprite, "SPRITE_CLERK", "shops: flower shop clerk added")
+    T.eq(clerk.x == 5 and clerk.y == 3, true, "shops: at Legacy's position")
+    T.eq(shop(clerk.scriptKey, 3), 1003, "shops: berry clerk basic stock")
+    T.eq(shop(clerk.scriptKey, 7), 1004, "shops: berry clerk full stock at 7 badges")
+    -- The wrapped mart screen serves the custom list and charges the real save.
+    local save = { player = { money = 50000 }, inventory = {} }
+    local game = { data = data, save = save }
+    local menu = data.screens.Gen2MartMenu.new(game, { martId = 1001, save = save,
+      items = data.items })
+    T.eq(menu.entries and menu.entries[1] and menu.entries[1].id, "TM_MUD_SLAP",
+      "shops: upgraded 5F list served")
+    menu.qtyItem, menu.qty = menu.entries[1], 1
+    menu:completePurchase(1000)
+    T.eq(save.player.money, 49000, "shops: purchase charged to the live save")
   end,
 }
 for _, id in ipairs(ids) do
