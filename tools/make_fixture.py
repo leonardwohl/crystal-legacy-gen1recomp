@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import parse  # noqa: E402
-from convert import lua  # noqa: E402
+from legacy_diff import lua  # noqa: E402
 
 TYPES = ["NORMAL", "FIGHTING", "FLYING", "POISON", "GROUND", "ROCK", "BIRD", "BUG",
          "GHOST", "STEEL"] + ["UNUSED_TYPE_%d" % i for i in range(10, 19)] + [

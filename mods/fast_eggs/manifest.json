@@ -1,0 +1,19 @@
+{
+  "id": "fast_eggs",
+  "name": "Fast Eggs",
+  "version": "0.2.0",
+  "api": 2,
+  "games": [
+    "gen2"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "QOL",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "description": "Eggs hatch in about a quarter of the steps, as in Crystal Legacy. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}

@@ -5,3 +5,4 @@ __pycache__/
 /pokecrystal/
 /base/
 /tests/fixture_crystal.lua
+/dist/

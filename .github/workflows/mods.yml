@@ -1,0 +1,66 @@
+name: Package mods
+
+# Every push and pull request: zip each mod and upload it as its own
+# artifact, so any one of them can be downloaded and tried on its own.
+# A pushed tag like v0.2.0: also publish a release with every mod's zip.
+# All mods share one version (gen1recomp's updater reads the version from the
+# release tag and then picks <id>-<version>.zip from that release's assets).
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      mods: ${{ steps.ids.outputs.mods }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: ids
+        run: |
+          echo "mods=$(ls mods | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))')" >> "$GITHUB_OUTPUT"
+
+  package:
+    needs: list
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mod: ${{ fromJson(needs.list.outputs.mods) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zip ${{ matrix.mod }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            python3 tools/package.py --out dist --version "${GITHUB_REF_NAME}" "${{ matrix.mod }}"
+          else
+            python3 tools/package.py --out dist "${{ matrix.mod }}"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.mod }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip \
+            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes

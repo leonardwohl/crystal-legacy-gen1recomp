@@ -5,12 +5,12 @@
 1. `tools/parse.py` reads the data tables both trees share: base stats,
    evolutions and learnsets, egg moves, moves, item prices, shops, trainer
    parties and wild encounters.
-2. `tools/convert.py` diffs Crystal Legacy against pokecrystal `82e315e48`
-   (its fork point). It writes only the changed values into `mod/main.lua`
+2. `tools/legacy_diff.py` diffs Crystal Legacy against pokecrystal `82e315e48`
+   (its fork point), and `tools/build.py` writes only the changed values into each mod's `main.lua`
    as gen1recomp patches, using gen1recomp's native Crystal record shapes
    (`"api": 2`, `"games": ["crystal"]`). The portable API 3 shapes would drop
    Crystal-only detail such as separate morning, day and night encounter slots.
-3. At load time, `main.lua` patches each record and logs anything gen1recomp
+3. At load time, each `main.lua` patches each record and logs anything gen1recomp
    refuses instead of aborting.
 
 ## Engine details worth knowing
@@ -35,7 +35,7 @@
 - **Typo in Crystal Legacy's source:** one Cooltrainer's Seadra has
   `SUPER_NERD` (a trainer class) in a move slot. The converter uses the move
   that the assembled ROM actually contains, and lists it in
-  `generated-changes.md`.
+  the build output.
 
 ## Next steps, roughly by value
 

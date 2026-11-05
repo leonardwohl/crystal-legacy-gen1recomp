@@ -1,0 +1,19 @@
+{
+  "id": "crystal_legacy_shops",
+  "name": "Crystal Legacy: Shop Changes",
+  "version": "0.2.0",
+  "api": 2,
+  "games": [
+    "crystal"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "BALANCE",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "description": "Crystal Legacy's shop stock and item prices. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}
