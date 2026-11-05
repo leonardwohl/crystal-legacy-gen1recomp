@@ -24,6 +24,23 @@ SKIPPED_NEW_ITEMS = {"OLD_AMBER", "DOME_FOSSIL", "HELIX_FOSSIL"}
 
 
 # ------------------------------------------------------------------ Lua out
+_ESC = {"\\": "\\\\", '"': '\\"', "\n": "\\n", "\r": "\\r", "\t": "\\t",
+        "\f": "\\f", "\v": "\\v"}
+
+
+def lua_string(s):
+    """A Lua 5.1 string literal (no \\u escapes; UTF-8 passes through)."""
+    out = []
+    for ch in s:
+        if ch in _ESC:
+            out.append(_ESC[ch])
+        elif ord(ch) < 32 or ord(ch) == 127:
+            out.append("\\%03d" % ord(ch))
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
+
+
 def lua(value, indent=0):
     pad = "  " * indent
     if value is None:
@@ -33,7 +50,7 @@ def lua(value, indent=0):
     if isinstance(value, int):
         return str(value)
     if isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False)
+        return lua_string(value)
     if isinstance(value, list):
         if not value:
             return "{}"

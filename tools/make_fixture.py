@@ -90,7 +90,39 @@ def build(base):
         if op == "db" and len(args) == 3 and args[2] in eff:
             matchups.append({"attacker": args[0], "defender": args[1],
                              "multiplier": eff[args[2]]})
+    # Synthetic stand-ins for the gym and Elite Four scripts gen1recomp
+    # decodes from the ROM, shaped like the real rows (op names and fields
+    # from RomExtractorGen2's decoder). Keys are made up; content is ours.
+    events = __import__("asm").const_values(os.path.join(base, "constants/event_flags.asm"))
+    maps, scripts, texts = {}, {"generation": 2}, {"generation": 2}
+    gyms = {"FALKNER": "VIOLET_GYM", "BUGSY": "AZALEA_GYM", "WHITNEY": "GOLDENROD_GYM",
+            "MORTY": "ECRUTEAK_GYM", "PRYCE": "MAHOGANY_GYM", "JASMINE": "OLIVINE_GYM",
+            "CHUCK": "CIANWOOD_GYM", "CLAIR": "BLACKTHORN_GYM_1F"}
+    for cls, mid in gyms.items():
+        key = "fx:%s" % cls
+        maps[mid] = {"id": mid, "name": mid, "objects": [
+            {"index": 1, "sprite": "SPRITE_GYM_GUIDE", "scriptKey": "fx:guide"},
+            {"index": 2, "sprite": "SPRITE_" + cls, "scriptKey": key}]}
+        texts[key] = "%s vanilla{DONE}" % cls
+        scripts[key] = [{"op": "faceplayer"}, {"op": "opentext"},
+                        {"op": "writetext", "text": key}, {"op": "waitbutton"},
+                        {"op": "closetext"}, {"op": "end"}]
+    scripts["fx:guide"] = [{"op": "end"}]
+    for cls, member_event in (("WILL", "EVENT_BEAT_ELITE_4_WILL"), ("KOGA", "EVENT_BEAT_ELITE_4_KOGA"),
+                              ("BRUNO", "EVENT_BEAT_ELITE_4_BRUNO"), ("KAREN", "EVENT_BEAT_ELITE_4_KAREN"),
+                              ("CHAMPION", "EVENT_BEAT_CHAMPION_LANCE")):
+        cidx = classes[cls]["index"]
+        intro, key = "fx:%s:intro" % cls, "fx:%s" % cls
+        texts[intro] = "%s vanilla intro{DONE}" % cls
+        battle = [{"op": "writetext", "text": intro}, {"op": "waitbutton"}, {"op": "closetext"},
+                  {"op": "winlosstext", "winText": intro},
+                  {"op": "loadtrainer", "class": cidx, "member": 1},
+                  {"op": "startbattle"}, {"op": "reloadmapafterbattle"},
+                  {"op": "setevent", "event": events[member_event]}, {"op": "end"}]
+        scripts[key] = [{"op": "faceplayer"}, {"op": "opentext"}] + battle
+        scripts[key + ":mid"] = [dict(r) for r in battle]  # a label inside the same script
     return {
+        "gen2Maps": maps, "gen2Scripts": scripts, "gen2Text": texts,
         "pokemon": pokemon, "moves": moves, "items": items,
         "type_chart": {"types": types, "matchups": matchups},
         "gen2Marts": {"generation": 2, "source": "fixture", "lists": lists},

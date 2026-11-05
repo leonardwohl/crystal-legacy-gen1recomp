@@ -15,6 +15,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import legacy_diff as D  # noqa: E402
+import textc  # noqa: E402
+from asm import const_values, statements  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VERSION = "0.2.0"
@@ -175,6 +177,266 @@ def build_shops(ctx):
                         "%d item prices changed" % len(ctx["items"]),
                         "Crystal Legacy's 5 new shops are not in yet (they need clerk scripts)"]
 
+# ----------------------------------------------------------------- rematches
+REMATCH_RUNTIME = r"""
+local function copy(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = copy(x) end
+  return out
+end
+
+local function slice(list, from)
+  local out = {}
+  for i = from, #list do out[#out + 1] = copy(list[i]) end
+  return out
+end
+
+-- Append a rematch party to a trainer class; returns (class index, member).
+-- Reads the merged list, so it lands after Trainer Changes' teams when that
+-- mod is installed (it is an optional dependency, so it always loads first).
+local function appendParty(mod, class, row, stats)
+  local rec = mod.content.trainers:get(class)
+  if not (rec and rec.trainers and rec.index) then
+    mod.log:warn("trainer class %s not found; rematch skipped", class)
+    stats.failed = stats.failed + 1
+    return nil
+  end
+  local list = rec.trainers
+  local member = #list + 1
+  local new = copy(row)
+  new.index = member
+  list[member] = new
+  patch(mod, "trainers", class, { trainers = list }, stats)
+  return rec.index, member
+end
+
+local function addText(mod, id, value, stats)
+  local ok, err = pcall(mod.content.text.register, mod.content.text, id, value)
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("text %s: %s", id, tostring(err))
+  end
+end
+
+local function setScript(mod, verb, id, rows, stats)
+  local reg = mod.content.map_scripts
+  local ok, err = pcall(reg[verb], reg, id, rows)
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("map script %s: %s", id, tostring(err))
+  end
+end
+
+-- Gym leaders: the leader's own talk script becomes a small wrapper. After
+-- the Elite Four (and once this leader is beaten) it offers the rematch, as
+-- Crystal Legacy does; otherwise, or on NO, it runs the vanilla script.
+local function leaderRematch(mod, L, stats)
+  local map = mod.content.maps:get(L.map)
+  local key
+  for _, obj in ipairs(map and map.objects or {}) do
+    if obj.sprite == L.sprite and obj.scriptKey then key = obj.scriptKey break end
+  end
+  local vanilla = key and mod.content.map_scripts:get(key)
+  if not vanilla then
+    mod.log:warn("%s: %s's script not found; rematch skipped", L.map, L.class)
+    stats.failed = stats.failed + 1
+    return
+  end
+  local class, member = appendParty(mod, L.class, L.party, stats)
+  if not class then return end
+  local base = "crystal_legacy_rematches:" .. L.class
+  addText(mod, base .. ":ask", L.ask, stats)
+  addText(mod, base .. ":beaten", L.beaten, stats)
+  setScript(mod, "register", base .. ":vanilla", copy(vanilla), stats)
+  setScript(mod, "register", base .. ":battle", {
+    { op = "special", id = DATA.healParty },
+    { op = "winlosstext", winText = base .. ":beaten" },
+    { op = "loadtrainer", class = class, member = member },
+    { op = "startbattle" },
+    { op = "reloadmapafterbattle" },
+    { op = "end" },
+  }, stats)
+  setScript(mod, "override", key, {
+    { op = "checkevent", event = DATA.beatEliteFour },
+    { op = "iffalse", script = base .. ":vanilla" },
+    { op = "checkevent", event = L.beatEvent },
+    { op = "iffalse", script = base .. ":vanilla" },
+    { op = "faceplayer" },
+    { op = "opentext" },
+    { op = "writetext", text = base .. ":ask" },
+    { op = "yesorno" },
+    { op = "iftrue", script = base .. ":battle" },
+    { op = "closetext" },
+    { op = "sjump", script = base .. ":vanilla" },
+  }, stats)
+  return member
+end
+
+-- Elite Four and Lance: with all 16 badges, the same battle script uses the
+-- rematch text and team (Crystal Legacy's `readvar VAR_BADGES` branch).
+-- Their scripts are found by the vanilla `loadtrainer CLASS, 1` row, in every
+-- script list that contains it.
+local function eliteRematch(mod, E, stats)
+  local class, member = appendParty(mod, E.class, E.party, stats)
+  if not class then return end
+  local base = "crystal_legacy_rematches:" .. E.class
+  addText(mod, base .. ":intro", E.intro, stats)
+  local found = {}
+  for key, rows in mod.content.map_scripts:each() do
+    if type(rows) == "table" then
+      for i, row in ipairs(rows) do
+        if type(row) == "table" and row.op == "loadtrainer"
+            and row.class == class and row.member == 1 then
+          found[#found + 1] = { key = key, rows = rows, at = i }
+          break
+        end
+      end
+    end
+  end
+  if #found == 0 then
+    mod.log:warn("no vanilla %s battle script found; rematch skipped", E.class)
+    stats.failed = stats.failed + 1
+    return
+  end
+  for n, f in ipairs(found) do
+    local rows, at = copy(f.rows), f.at
+    -- 16 badges: a tail that loads the rematch team instead.
+    local teamTail = slice(rows, at)
+    teamTail[1].member = member
+    local teamKey = ("%s:team%d"):format(base, n)
+    setScript(mod, "register", teamKey, teamTail, stats)
+    table.insert(rows, at, { op = "ifgreater", value = 15, script = teamKey })
+    table.insert(rows, at, { op = "readvar", var = DATA.varBadges })
+    -- ...and the intro line before it, if this list shows one.
+    local textAt
+    for i = at - 1, 1, -1 do
+      if rows[i].op == "writetext" then textAt = i break end
+    end
+    if textAt then
+      local textTail = slice(rows, textAt)
+      textTail[1].text = base .. ":intro"
+      local textKey = ("%s:intro%d"):format(base, n)
+      setScript(mod, "register", textKey, textTail, stats)
+      table.insert(rows, textAt, { op = "ifgreater", value = 15, script = textKey })
+      table.insert(rows, textAt, { op = "readvar", var = DATA.varBadges })
+    end
+    setScript(mod, "override", f.key, rows, stats)
+  end
+  return member
+end
+"""
+
+
+def _legacy_map_constants(leg):
+    out = {}
+    for op, args in statements(os.path.join(leg, "data/maps/attributes.asm")):
+        if op == "map_attributes" and len(args) >= 2:
+            out[args[0]] = args[1]
+    return out
+
+
+def _script_blocks(path):
+    """[(label, [(op, args)])] including local labels, in file order."""
+    blocks, cur = [], None
+    for op, args in statements(path):
+        if op == "label":
+            cur = (args, [])
+            blocks.append(cur)
+        elif cur is not None:
+            cur[1].append((op, args))
+    return blocks
+
+
+def rematch_specs(ctx, base, leg):
+    texts_cache, maps = {}, _legacy_map_constants(leg)
+    rows_all, extras_all = ctx["trainersAll"], ctx["extrasAll"]
+    vanilla_counts = {c: len(v["parties"]) for c, v in D.parse.trainer_parties(base).items()}
+    events = const_values(os.path.join(base, "constants/event_flags.asm"))
+
+    def texts(f):
+        if f not in texts_cache:
+            texts_cache[f] = textc.text_blocks(os.path.join(leg, "maps", f + ".asm"))
+        return texts_cache[f]
+
+    def party_for(cls, legacy_index):
+        row = next(r for r in rows_all[cls] if r["index"] == legacy_index)
+        new = {k: v for k, v in row.items() if k != "index"}
+        new["id"] = "%s_REMATCH" % cls
+        ext = extras_all.get(cls, {}).get(legacy_index)
+        return new, ext
+
+    leaders, elites, extras = [], [], {}
+    gyms = {"FALKNER": "VioletGym", "BUGSY": "AzaleaGym", "WHITNEY": "GoldenrodGym",
+            "MORTY": "EcruteakGym", "PRYCE": "MahoganyGym", "JASMINE": "OlivineGym",
+            "CHUCK": "CianwoodGym", "CLAIR": "BlackthornGym1F"}
+    for cls, f in gyms.items():
+        blocks = _script_blocks(os.path.join(leg, "maps", f + ".asm"))
+        label = ".%sRematch" % cls.capitalize()
+        body = dict(blocks)[label]
+        beaten = next(a[0] for op, a in body if op == "winlosstext")
+        idx = next(int(a[1]) for op, a in body if op == "loadtrainer" and a[0] == cls)
+        ask = None
+        for _, ops in blocks:
+            for i, (op, a) in enumerate(ops):
+                if op == "iftrue" and a and a[0] == label:
+                    ask = next(x[1][0] for x in reversed(ops[:i]) if x[0] == "writetext")
+        party, ext = party_for(cls, idx)
+        if ext:
+            extras.setdefault(cls, {})[party["id"]] = ext
+        leaders.append({"class": cls, "map": maps[f], "sprite": "SPRITE_" + cls,
+                        "beatEvent": events["EVENT_BEAT_" + cls],
+                        "ask": texts(f)[ask], "beaten": texts(f)[beaten], "party": party})
+    rooms = {"WILL": "WillsRoom", "KOGA": "KogasRoom", "BRUNO": "BrunosRoom",
+             "KAREN": "KarensRoom", "CHAMPION": "LancesRoom"}
+    for cls, f in rooms.items():
+        ops = [x for _, b in _script_blocks(os.path.join(leg, "maps", f + ".asm")) for x in b]
+        intro = None
+        for i, (op, a) in enumerate(ops):
+            if op == "if_less_than" and a[0] == "16" and ops[i + 1][0] == "writetext":
+                intro = ops[i + 1][1][0]
+                break
+        party, ext = party_for(cls, 2)
+        if ext:
+            extras.setdefault(cls, {})[party["id"]] = ext
+        elites.append({"class": cls, "intro": texts(f)[intro], "party": party})
+    specials = [a[0] for op, a in statements(os.path.join(base, "data/events/special_pointers.asm"))
+                if op == "add_special"]
+    return {"leaders": leaders, "elites": elites, "extras": extras,
+            "healParty": specials.index("HealParty"),
+            "beatEliteFour": events["EVENT_BEAT_ELITE_FOUR"], "varBadges": 7}
+
+
+def build_rematches(ctx):
+    data = rematch_specs(ctx, ctx["base"], ctx["legacy"])
+    body = """
+  for _, L in ipairs(DATA.leaders) do leaderRematch(mod, L, stats) end
+  for _, E in ipairs(DATA.elites) do eliteRematch(mod, E, stats) end
+  -- Custom DVs / stat exp on the rematch teams, keyed by member id.
+  if next(DATA.extras) then
+    mod.hooks:wrap("trainer.party", function(nextFn, class, member, party)
+      party = nextFn(class, member, party)
+      local slots = DATA.extras[class] and DATA.extras[class][member]
+      if slots and type(party) == "table" then
+        for slot, extra in pairs(slots) do
+          local mon = party[slot]
+          if mon then
+            if extra.dvs then mon.dvs = extra.dvs end
+            if extra.statExp then mon.statExp = extra.statExp end
+            if extra.happiness then mon.happiness = extra.happiness end
+          end
+        end
+      end
+      return party
+    end)
+  end"""
+    return data, body, [
+        "Gym leader rematches after the Elite Four: %s" % ", ".join(
+            l["class"].capitalize() for l in data["leaders"]),
+        "Elite Four and Lance rematch teams once you have all 16 badges",
+        "Crystal Legacy's rematch dialogue and teams (levels 53-69)",
+        "Red's rematch is part of Story Changes (it follows Crystal Legacy's Mewtwo event)"]
+
 
 MODS = [
     {"id": "crystal_legacy_pokemon", "name": "Crystal Legacy: Pokémon Changes",
@@ -196,12 +458,17 @@ MODS = [
     {"id": "crystal_legacy_shops", "name": "Crystal Legacy: Shop Changes",
      "category": "BALANCE", "games": ["crystal"], "build": build_shops,
      "summary": "Crystal Legacy's shop stock and item prices."},
+    {"id": "crystal_legacy_rematches", "name": "Crystal Legacy: Rematches",
+     "category": "CONTENT", "games": ["crystal"], "build": build_rematches,
+     "runtime": REMATCH_RUNTIME, "optional_dependencies": ["crystal_legacy_trainers"],
+     "summary": "Rematch every gym leader after the Elite Four, and the Elite Four "
+                "themselves once you have all 16 badges."},
 ]
 
 
 def context(base, leg):
     report = {"notes": []}
-    ctx = {"report": report,
+    ctx = {"report": report, "base": base, "legacy": leg,
            "pokemon": D.diff_pokemon(base, leg, report),
            "moves": D.diff_moves(base, leg, report),
            "items": D.diff_items(base, leg, report)}
@@ -235,7 +502,8 @@ def write_mod(spec, ctx):
         "id": spec["id"], "name": spec["name"], "version": VERSION, "api": 2,
         "games": spec["games"], "entry": "main.lua", "profile": "content",
         "category": spec["category"], "game_version": GAME_VERSION, "priority": 100,
-        "dependencies": [], "optional_dependencies": [], "conflicts": [],
+        "dependencies": [], "optional_dependencies": spec.get("optional_dependencies", []),
+        "conflicts": [],
         "description": spec["summary"] + " Unofficial port of Pokémon Crystal Legacy.",
         "github": GITHUB,
     }
@@ -245,7 +513,7 @@ def write_mod(spec, ctx):
     with open(os.path.join(d, "main.lua"), "w", encoding="utf-8") as fh:
         fh.write("-- GENERATED by tools/build.py -- edit the builder, not this file.\n")
         fh.write("-- %s: %s\n" % (spec["name"], spec["summary"]))
-        fh.write("\nlocal DATA = " + D.lua(data) + "\n" + PRELUDE)
+        fh.write("\nlocal DATA = " + D.lua(data) + "\n" + PRELUDE + spec.get("runtime", ""))
         fh.write("\nreturn function(mod)\n  local stats = { applied = 0, failed = 0 }\n")
         fh.write(body + "\n")
         fh.write('  mod.log:info("%s: %%d patches applied, %%d refused", stats.applied, stats.failed)\n'

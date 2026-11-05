@@ -87,7 +87,12 @@ local CHECKS = {
     local f = trainers.FALKNER.trainers
     T.eq(f[1].party[1].level, 8, "trainers: Falkner's Pidgey is level 8")
     T.eq(f[1].party[2].species, "NOCTOWL", "trainers: Falkner has Noctowl")
-    T.eq(#f, vanillaFalkner, "trainers: no rematch rows added here")
+    if loader.mods.crystal_legacy_rematches then
+      T.eq(#f, vanillaFalkner + 1, "trainers+rematches: rematch appended after Legacy teams")
+      T.eq(f[#f].party[1].level, 54, "trainers+rematches: appended team is the rematch")
+    else
+      T.eq(#f, vanillaFalkner, "trainers: no rematch rows added here")
+    end
     T.eq(trainers.CAL.trainers[3].name, "SMITH", "trainers: Trainer House Cal 3 -> Smith")
     local out = Runtime.call("trainer.party", function(_, _, pt) return pt end,
       "CAL", "CAL3", { {} })
@@ -127,6 +132,48 @@ local CHECKS = {
     local ok, wildInst = pcall(data.screens.Gen2PackMenu.new, nil, { battle = true })
     T.eq(ok and wildInst and wildInst.update ~= nil and closed, true,
       "hard mode: wild battles get the normal PACK")
+  end,
+  crystal_legacy_rematches = function()
+    -- Run the real gen1recomp Crystal script VM over the merged scripts.
+    local Vm = require("src.script.gen2.Vm")
+    local Events = require("src.world.gen2.Events")
+    local Trainers = require("src.world.gen2.Trainers")
+    local function talk(key, opts)
+      local events = Events.new()
+      for _, id in ipairs(opts.events or {}) do events:set(id, true) end
+      local seen, battle = {}, nil
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, events, {
+        showText = function(body, onDone) seen[#seen + 1] = tostring(body) if onDone then onDone() end end,
+        yesorno = function(onChoose) onChoose(opts.yes) end,
+        readVar = function(id) return id == 7 and (opts.badges or 0) or 0 end,
+        lookupTrainer = function(class, member)
+          return Trainers.lookup(data.gen2Trainers, class, member)
+        end,
+        startBattle = function(trainer, _, done) battle = trainer done("win") end,
+      })
+      T.eq(vm:start(key), true, "rematches: " .. key .. " starts")
+      for _ = 1, 600 do if not vm:running() then break end vm:update() end
+      return table.concat(seen, " | "), battle
+    end
+    local E4, FALK = 68, 1213
+    local text = talk("fx:FALKNER", { events = {} })
+    T.eq(text:find("FALKNER vanilla", 1, true) ~= nil, true, "rematches: before E4, vanilla Falkner")
+    local text2, b2 = talk("fx:FALKNER", { events = { E4, FALK }, yes = true })
+    T.eq(text2:find("Congratulations", 1, true) ~= nil, true, "rematches: offers Falkner rematch")
+    T.eq(b2 and b2.roster and b2.roster[1].level, 54, "rematches: level 54 rematch team")
+    local text3, b3 = talk("fx:FALKNER", { events = { E4, FALK }, yes = false })
+    T.eq(b3, nil, "rematches: declining starts no battle")
+    T.eq(text3:find("FALKNER vanilla", 1, true) ~= nil, true, "rematches: declining falls back to vanilla")
+    local w1, wb1 = talk("fx:WILL", { badges = 8 })
+    T.eq(wb1 and wb1.member, 1, "rematches: Will with 8 badges uses his first team")
+    T.eq(w1:find("vanilla intro", 1, true) ~= nil, true, "rematches: and his vanilla intro")
+    local w2, wb2 = talk("fx:WILL", { badges = 16 })
+    T.eq(wb2 and wb2.roster and wb2.roster[1].level, 66, "rematches: 16 badges -> rematch team")
+    T.eq(w2:find("welcome back", 1, true) ~= nil, true, "rematches: and rematch intro")
+    local _, wb3 = talk("fx:WILL:mid", { badges = 16 })
+    T.eq(wb3 and wb3.roster and wb3.roster[1].level, 66, "rematches: mid-script label patched too")
+    local _, lb = talk("fx:CHAMPION", { badges = 16 })
+    T.eq(lb and lb.id, "CHAMPION_REMATCH", "rematches: Lance rematch member id")
   end,
   crystal_legacy_shops = function()
     T.eq(data.gen2Marts.lists ~= nil, true, "shops: mart table present")

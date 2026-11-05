@@ -21,7 +21,7 @@ only translates their work into gen1recomp's mod format.
 | [Fast Eggs](mods/fast_eggs) | Eggs hatch in about a quarter of the steps (Gold, Silver, Crystal) | ✅ ready to try |
 | [Ghost/Dark Switch](mods/crystal_legacy_ghost_dark) | Ghost moves special, Dark moves physical (Gold, Silver, Crystal) | ✅ ready to try |
 | [Shop Changes](mods/crystal_legacy_shops) | Shop stock and prices | ✅ existing shops; 🚧 new shops |
-| Rematches | Gym leader, Elite Four and Red rematches | 🚧 in progress |
+| [Rematches](mods/crystal_legacy_rematches) | Gym leaders after the Elite Four; Elite Four and Lance with 16 badges | ✅ ready to try (Red: see Story) |
 | [Legacy Hard Mode](mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore and Gen 1/3 later |
 | Story Changes | Team Rocket and rival story, new trainer classes, scaling leaders | 🚧 planned |
 

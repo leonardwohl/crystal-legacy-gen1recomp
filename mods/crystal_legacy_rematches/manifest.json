@@ -1,0 +1,21 @@
+{
+  "id": "crystal_legacy_rematches",
+  "name": "Crystal Legacy: Rematches",
+  "version": "0.2.0",
+  "api": 2,
+  "games": [
+    "crystal"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "CONTENT",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [
+    "crystal_legacy_trainers"
+  ],
+  "conflicts": [],
+  "description": "Rematch every gym leader after the Elite Four, and the Elite Four themselves once you have all 16 badges. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}
