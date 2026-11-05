@@ -21,4 +21,14 @@ for id in "${mods[@]}"; do
 done
 echo "== all mods together"
 luajit "$repo/tests/load_test.lua" "$repo" "${mods[@]}" | grep -v '^\[info\]' || status=1
+
+# Optional: real importer output for each ROM revision you have dumped with
+# tools/extract_real.lua, e.g. CL_REAL="dumps/crystal10 dumps/crystal11".
+for dump in ${CL_REAL:-}; do
+  echo "== real data: $dump"
+  for id in "${mods[@]}"; do
+    CL_FIXTURE="$dump" luajit "$repo/tests/load_test.lua" "$repo" "$id" | grep -v '^\[info\]' || status=1
+  done
+  CL_FIXTURE="$dump" luajit "$repo/tests/load_test.lua" "$repo" "${mods[@]}" | grep -v '^\[info\]' || status=1
+done
 exit $status

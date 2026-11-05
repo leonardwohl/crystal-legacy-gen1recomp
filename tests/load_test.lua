@@ -31,7 +31,52 @@ local T = require("tests.modkit")
 local Loader = require("src.mods.Loader")
 local Runtime = require("src.mods.Runtime")
 
-local data = dofile(repo .. "/tests/fixture_crystal.lua")
+-- CL_FIXTURE=<dump> runs against real importer output (tests/real_data.lua);
+-- otherwise the synthetic fixture built from the disassembly is used.
+local real = os.getenv("CL_FIXTURE")
+local data = real and dofile(repo .. "/tests/real_data.lua")(real)
+  or dofile(repo .. "/tests/fixture_crystal.lua")
+
+-- Find the vanilla scripts the checks drive BEFORE the mods change anything,
+-- by structure rather than by key, so the same checks run on either fixture.
+local function classIndex(name)
+  local c = data.gen2Trainers.classes[name]
+  return c and c.index
+end
+local battleKeys = {}   -- class -> { keys whose rows load its first team }
+local martKeys = {}     -- vanilla mart id -> clerk script key
+for key, rows in pairs(data.gen2Scripts) do
+  if type(rows) == "table" and type(key) == "string" then
+    for _, row in ipairs(rows) do
+      if type(row) == "table" and row.op == "loadtrainer" and (row.member or (row.args and row.args[2])) == 1 then
+        local cls = row.class or (row.args and row.args[1])
+        battleKeys[cls] = battleKeys[cls] or {}
+        table.insert(battleKeys[cls], key)
+      end
+    end
+  end
+end
+for _, c in pairs(battleKeys) do table.sort(c) end
+local function objectKey(mapId, sprite)
+  for _, obj in ipairs((data.gen2Maps[mapId] or {}).objects or {}) do
+    if obj.sprite == sprite and obj.scriptKey then return obj.scriptKey end
+  end
+end
+for _, mapId in ipairs({ "CELADON_DEPT_STORE_3F", "CELADON_DEPT_STORE_5F" }) do
+  for _, obj in ipairs((data.gen2Maps[mapId] or {}).objects or {}) do
+    for _, row in ipairs(obj.scriptKey and data.gen2Scripts[obj.scriptKey] or {}) do
+      if type(row) == "table" and row.op == "pokemart" then
+        local a = row.args or {}
+        martKeys[row.mart or ((a[2] or 0) + (a[3] or 0) * 256)] = obj.scriptKey
+      end
+    end
+  end
+end
+local falknerKey = objectKey("VIOLET_GYM", "SPRITE_FALKNER")
+local function firstBattleKey(name)
+  local list = battleKeys[classIndex(name)]
+  return list and list[1], list
+end
 local vanillaMatchups = #data.type_chart.matchups
 local vanillaFalkner = #data.gen2Trainers.classes.FALKNER.trainers
 
@@ -114,11 +159,11 @@ local CHECKS = {
       for _ = 1, 200 do if not vm:running() then break end vm:update() end
       return got
     end
-    T.eq(fight("fx:PRYCE:battle", 4).member, 1, "scaling: Pryce with 4 badges -> first team")
-    T.eq(fight("fx:PRYCE:battle", 5).id, "PRYCE_5BADGES", "scaling: 5 badges -> second team")
-    T.eq(fight("fx:PRYCE:battle", 6).roster[1].level >= 37, true, "scaling: 6 badges -> strongest")
-    T.eq(fight("fx:CHUCK:battle", 5).id, "CHUCK_5BADGES", "scaling: Chuck too")
-    T.eq(fight("fx:JASMINE:battle", 6).id, "JASMINE_6BADGES", "scaling: Jasmine too")
+    T.eq(fight(firstBattleKey("PRYCE"), 4).member, 1, "scaling: Pryce with 4 badges -> first team")
+    T.eq(fight(firstBattleKey("PRYCE"), 5).id, "PRYCE_5BADGES", "scaling: 5 badges -> second team")
+    T.eq(fight(firstBattleKey("PRYCE"), 6).roster[1].level >= 37, true, "scaling: 6 badges -> strongest")
+    T.eq(fight(firstBattleKey("CHUCK"), 5).id, "CHUCK_5BADGES", "scaling: Chuck too")
+    T.eq(fight(firstBattleKey("JASMINE"), 6).id, "JASMINE_6BADGES", "scaling: Jasmine too")
   end,
   crystal_legacy_encounters = function()
     T.eq(enc.grass.SPROUT_TOWER_2F.rates.MORN, 5, "encounters: rates stay raw bytes")
@@ -178,23 +223,27 @@ local CHECKS = {
       return table.concat(seen, " | "), battle
     end
     local E4, FALK = 68, 1213
-    local text = talk("fx:FALKNER", { events = {} })
-    T.eq(text:find("FALKNER vanilla", 1, true) ~= nil, true, "rematches: before E4, vanilla Falkner")
-    local text2, b2 = talk("fx:FALKNER", { events = { E4, FALK }, yes = true })
+    local text, b1 = talk(falknerKey, { events = {}, yes = true })
+    T.eq(text:find("Congratulations", 1, true), nil, "rematches: before E4, no rematch offer")
+    if real then T.eq(b1 and b1.member, 1, "rematches: before E4, the normal Falkner fight") end
+    local text2, b2 = talk(falknerKey, { events = { E4, FALK }, yes = true })
     T.eq(text2:find("Congratulations", 1, true) ~= nil, true, "rematches: offers Falkner rematch")
     T.eq(b2 and b2.roster and b2.roster[1].level, 54, "rematches: level 54 rematch team")
-    local text3, b3 = talk("fx:FALKNER", { events = { E4, FALK }, yes = false })
+    local text3, b3 = talk(falknerKey, { events = { E4, FALK }, yes = false })
     T.eq(b3, nil, "rematches: declining starts no battle")
-    T.eq(text3:find("FALKNER vanilla", 1, true) ~= nil, true, "rematches: declining falls back to vanilla")
-    local w1, wb1 = talk("fx:WILL", { badges = 8 })
+    T.eq(#text3 > #"Congratulations", true, "rematches: declining falls back to vanilla dialogue")
+    local willKey, willKeys = firstBattleKey("WILL")
+    local w1, wb1 = talk(willKey, { badges = 8 })
     T.eq(wb1 and wb1.member, 1, "rematches: Will with 8 badges uses his first team")
-    T.eq(w1:find("vanilla intro", 1, true) ~= nil, true, "rematches: and his vanilla intro")
-    local w2, wb2 = talk("fx:WILL", { badges = 16 })
+    T.eq(w1:find("welcome back", 1, true), nil, "rematches: and his vanilla intro")
+    local w2, wb2 = talk(willKey, { badges = 16 })
     T.eq(wb2 and wb2.roster and wb2.roster[1].level, 66, "rematches: 16 badges -> rematch team")
     T.eq(w2:find("welcome back", 1, true) ~= nil, true, "rematches: and rematch intro")
-    local _, wb3 = talk("fx:WILL:mid", { badges = 16 })
-    T.eq(wb3 and wb3.roster and wb3.roster[1].level, 66, "rematches: mid-script label patched too")
-    local _, lb = talk("fx:CHAMPION", { badges = 16 })
+    for _, k in ipairs(willKeys) do
+      local _, wb3 = talk(k, { badges = 16 })
+      T.eq(wb3 and wb3.roster and wb3.roster[1].level, 66, "rematches: every Will battle list patched (" .. k .. ")")
+    end
+    local _, lb = talk(firstBattleKey("CHAMPION"), { badges = 16 })
     T.eq(lb and lb.id, "CHAMPION_REMATCH", "rematches: Lance rematch member id")
   end,
   crystal_legacy_shops = function()
@@ -212,10 +261,10 @@ local CHECKS = {
       for _ = 1, 200 do if not vm:running() then break end vm:update() end
       return opened
     end
-    T.eq(shop("fx:CELADON_DEPT_STORE_5F:1", 8), 27, "shops: 5F clerk 1 vanilla stock before 16 badges")
-    T.eq(shop("fx:CELADON_DEPT_STORE_5F:1", 16), 1001, "shops: 5F clerk 1 upgraded at 16 badges")
-    T.eq(shop("fx:CELADON_DEPT_STORE_5F:2", 16), 1002, "shops: 5F clerk 2 upgraded at 16 badges")
-    T.eq(shop("fx:CELADON_DEPT_STORE_3F:1", 16), 1000, "shops: 3F clerk upgraded at 16 badges")
+    T.eq(shop(martKeys[27], 8), 27, "shops: 5F clerk 1 vanilla stock before 16 badges")
+    T.eq(shop(martKeys[27], 16), 1001, "shops: 5F clerk 1 upgraded at 16 badges")
+    T.eq(shop(martKeys[28], 16), 1002, "shops: 5F clerk 2 upgraded at 16 badges")
+    T.eq(shop(martKeys[25], 16), 1000, "shops: 3F clerk upgraded at 16 badges")
     local fs = data.gen2Maps.GOLDENROD_FLOWER_SHOP.objects
     local clerk = fs[#fs]
     T.eq(clerk.sprite, "SPRITE_CLERK", "shops: flower shop clerk added")

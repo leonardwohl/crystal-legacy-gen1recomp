@@ -68,6 +68,19 @@ python3 tools/build.py --base base --legacy legacy
 tools/test.sh path/to/gen1recomp base
 ```
 
+For a stronger check, dump gen1recomp's real import of a Crystal ROM you own
+(1.0 and/or 1.1) and run the same tests against it. The dump is ROM-derived,
+so keep it outside the repo:
+
+```bash
+cd path/to/gen1recomp
+luajit path/to/repo/tools/extract_real.lua crystal.gbc /tmp/dumps/crystal10 "$(sha1sum crystal.gbc | cut -d' ' -f1)"
+```
+
+```bash
+CL_REAL="/tmp/dumps/crystal10" tools/test.sh path/to/gen1recomp base
+```
+
 `82e315e48` is the pokecrystal commit Crystal Legacy was forked from: 1,850 of
 its 2,477 `.asm` files match that commit byte for byte, more than any other
 commit. Diffing against it keeps pokecrystal's own later refactors out of the
