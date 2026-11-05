@@ -281,6 +281,14 @@ local CHECKS = {
     end
     for _, m in ipairs(missing) do print("missing: " .. m) end
     T.eq(#missing, 0, "story: every referenced script/text/movement exists")
+    -- Legacy's new overworld sprites: registered, and their numbers named.
+    for _, name in ipairs({ "SPRITE_ARCHER", "SPRITE_GIOVANNI", "SPRITE_MEWTWO", "SPRITE_MURKROW" }) do
+      local rec = data.gen2Sprites and data.gen2Sprites[name]
+      T.eq(rec ~= nil and type(rec.image) == "string", true, "story: sprite " .. name .. " registered")
+    end
+    local order = data.gen2Constants and data.gen2Constants.spriteOrder or {}
+    T.eq(order[0x68], "SPRITE_GIOVANNI", "story: sprite $68 is Giovanni")
+    T.eq(order[0xa3], "SPRITE_MEWTWO", "story: sprite $a3 is Mewtwo")
     if not real then return end
     local Vm = require("src.script.gen2.Vm")
     local Events = require("src.world.gen2.Events")

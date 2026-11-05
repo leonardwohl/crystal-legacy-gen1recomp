@@ -22,6 +22,6 @@ return function(dir)
     gen2Maps = d.maps, gen2Scripts = d.scripts, gen2StdScripts = d.std_scripts,
     gen2Text = d.text, text = d.rom_text or {}, gen2Trainers = d.trainers,
     gen2Encounters = d.encounters, gen2Marts = d.marts, gen2Constants = d.constants,
-    gen2Roofs = d.roofs,
+    gen2Roofs = d.roofs, gen2Sprites = d.sprites or {},
   }
 end

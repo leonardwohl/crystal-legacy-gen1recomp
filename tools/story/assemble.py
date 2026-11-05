@@ -47,8 +47,8 @@ LEGACY_ONLY = {
     "BATTLETYPE_SET": 0, "BATTLETYPE_SETNOITEMS": 0, "BATTLETYPE_CANLOSE_SETNOITEMS": 0,
 }
 
-# Legacy's new overworld sprites need art gen1recomp does not have yet, so
-# for now each uses the closest vanilla sprite (resolved by name below).
+# Fallback for a new Legacy sprite that build_story.py did not port (it passes
+# ported sprites in as constants): the closest vanilla sprite.
 SPRITE_STAND_INS = {
     "SPRITE_ARCHER": "SPRITE_ROCKET", "SPRITE_GIOVANNI": "SPRITE_GENTLEMAN",
     "SPRITE_GIOVANNI_DISGUISE": "SPRITE_GENTLEMAN", "SPRITE_MEWTWO": "SPRITE_MONSTER",

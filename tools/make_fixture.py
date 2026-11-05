@@ -143,7 +143,13 @@ def build(base):
         maps[mid] = {"id": mid, "name": mid, "objects": []}
     maps["GOLDENROD_FLOWER_SHOP"] = {"id": "GOLDENROD_FLOWER_SHOP", "name": "GOLDENROD_FLOWER_SHOP",
         "objects": [{"index": 1, "sprite": "SPRITE_TEACHER", "x": 2, "y": 4, "scriptKey": "fx:guide"}]}
+    sprite_names = __import__("asm").const_values(os.path.join(base, "constants/sprite_constants.asm"))
+    order = ["UNUSED"] * 0xA2
+    for n, v in sprite_names.items():
+        if 1 <= v <= 0xA2 and n.startswith("SPRITE_"):
+            order[v - 1] = n
     return {
+        "gen2Sprites": {}, "gen2Constants": {"spriteOrder": order},
         "gen2Maps": maps, "gen2Scripts": scripts, "gen2Text": texts,
         "pokemon": pokemon, "moves": moves, "items": items,
         "type_chart": {"types": types, "matchups": matchups},

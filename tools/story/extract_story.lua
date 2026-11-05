@@ -24,6 +24,11 @@ for i = 4, #arg do mapIds[#mapIds + 1] = arg[i] end
 
 local function read(p) local f = assert(io.open(p, "rb")) local s = f:read("*a") f:close() return s end
 local manifest = Json.decode(read("tools/rom_manifest_crystal.json"))
+-- New sprite numbers the Story mod names (CL_SPRITE_ORDER="103=SPRITE_ARCHER,...")
+-- so map objects decode with their names, as they will at runtime.
+for num, name in (os.getenv("CL_SPRITE_ORDER") or ""):gmatch("(%d+)=([%w_]+)") do
+  manifest.constants.spriteOrder[tonumber(num)] = name
+end
 local e = Extractor.new(read(romPath), manifest, nil, sha1)
 local out = {}
 e.write = function(_, name, value) out[name] = value end

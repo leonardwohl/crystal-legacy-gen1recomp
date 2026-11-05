@@ -21,6 +21,7 @@ e.write2bpp = function() end
 e:extractConstants()
 e:extractTilesets()
 local maps = e:extractMaps()
+e:extractSprites()
 local std = e:extractStdScripts()
 e:extractScriptsAndText(maps, std)
 e:extractText()

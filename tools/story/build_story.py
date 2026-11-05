@@ -27,6 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.dirname(HERE))
 import assemble  # noqa: E402
+import sprites as SP  # noqa: E402
 import legacy_diff as D  # noqa: E402
 import build as B  # noqa: E402
 
@@ -80,12 +81,16 @@ def main():
         ap.add_argument("--" + k, required=True)
     a = ap.parse_args()
     files = list(MAPS)
-    r = assemble.build(a.base, a.legacy, a.rgbds, a.work, files, {})
+    mod_dir = os.path.join(ROOT, "mods", MOD_ID)
+    sprite_defs, sprite_records, sprite_order = SP.port(
+        a.base, a.legacy, files, os.path.join(mod_dir, "assets"))
+    r = assemble.build(a.base, a.legacy, a.rgbds, a.work, files, dict(sprite_defs))
     patched = os.path.join(a.work, "patched.gbc")
     run([sys.executable, "-I", os.path.join(HERE, "patch_rom.py"), "--base", a.base,
          "--work", a.work, "--rom", "pokecrystal.gbc", "--out", patched] + files)
     sha = run(["sha1sum", os.path.join(a.base, "pokecrystal.gbc")]).split()[0]
     story_lua = os.path.join(a.work, "story.lua")
+    os.environ["CL_SPRITE_ORDER"] = ",".join("%d=%s" % kv for kv in sorted(sprite_order.items()))
     print(run(["luajit", os.path.join(HERE, "extract_story.lua"), patched, sha, story_lua]
               + list(MAPS.values()), cwd=a.engine).strip())
     dump = run(["luajit", "-e", 'package.path="./?.lua;"..package.path '
@@ -97,8 +102,6 @@ def main():
     report = {"notes": []}
     rows, extras = D.diff_trainers(a.base, a.legacy, report)
     classes, parties = [], []
-    mod_dir = os.path.join(ROOT, "mods", MOD_ID)
-    os.makedirs(os.path.join(mod_dir, "assets"), exist_ok=True)
     legacy_parties = D.parse.trainer_parties(a.legacy)
     D.resolve_moves(a.legacy, legacy_parties, report)
 
@@ -141,9 +144,12 @@ def main():
                  for mid in MAPS.values()},
         "classes": classes, "parties": parties, "extras": extra_fields,
         "newEvents": r["newEvents"],
+        "sprites": sprite_records,
+        "spriteOrder": {str(k): v for k, v in sprite_order.items()},
     }
     write_mod(mod_dir, data)
     print("events reused:", r["newEvents"])
+    print("sprites:", {v: hex(k) for k, v in sprite_order.items()})
     for n in report["notes"]:
         print("note:", n)
 
@@ -195,6 +201,18 @@ def write_mod(mod_dir, data):
 return function(mod)
   local stats = { applied = 0, failed = 0 }
   local scripts, maps = numberKeys(DATA.scripts), numberKeys(DATA.maps)
+
+  -- 0. Legacy's new overworld sprites, on sprite numbers vanilla leaves free.
+  for _, rec in ipairs(DATA.sprites) do
+    local r = copy(rec)
+    r.image = mod.path .. "/" .. rec.image
+    register(mod, "sprites", rec.id, r, stats)
+  end
+  local order = mod.content.constants:get("spriteOrder")
+  if order then
+    for num, name in pairs(numberKeys(DATA.spriteOrder)) do order[num] = name end
+    patch(mod, "constants", "spriteOrder", order, stats)
+  end
 
   -- 1. Legacy's text, movements and scripts, under their own (bank $80+) keys.
   each(DATA.text, function(id, s) register(mod, "text", id, s, stats) end)

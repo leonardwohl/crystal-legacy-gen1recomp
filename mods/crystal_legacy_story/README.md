@@ -13,16 +13,17 @@ by map. Uses Crystal Legacy's own scripts and dialogue.
 - **Silver Cave:** after you beat Red, Mewtwo appears; after the Mewtwo
   encounter, Red can be fought again with his level-93 rematch team.
 
+Archer, Giovanni, Mewtwo and Murkrow use Crystal Legacy's own overworld
+sprites and battle art. New sprites go on sprite numbers vanilla Crystal
+leaves free ($67+ for people, $a3+ for Pokémon), named through the
+`constants` registry so objects and variable sprites both find them.
+
 ## Not in yet
 
 - The rest of Crystal Legacy's story maps: Ruins of Alph, Mt. Mortar, Lake of
   Rage, Kurt, the Mahogany Mart, the Goldenrod Flower Shop's Squirtbottle and
   Gold Berry flow, the Rocket trigger after the middle gyms, and Giovanni.
 - Dialogue tweaks on maps whose scripts are otherwise unchanged.
-- **Overworld sprites:** Legacy's new walking sprites. Archer uses the Rocket
-  grunt sprite, Giovanni the gentleman, Mewtwo the generic monster and
-  Murkrow the bird sprite until their art is ported. Battle pictures are
-  Legacy's.
 
 ## How it works
 

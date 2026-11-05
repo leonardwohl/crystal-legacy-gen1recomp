@@ -280,8 +280,8 @@ local DATA = {
           script = 9967,
           scriptKey = "00:26ef",
           sight = 0,
-          sprite = "SPRITE_ROCKET",
-          spriteId = 53,
+          sprite = "SPRITE_ARCHER",
+          spriteId = 103,
           type = 0,
           x = 13,
           y = 5,
@@ -399,8 +399,8 @@ local DATA = {
           script = 16522,
           scriptKey = "83:408a",
           sight = 0,
-          sprite = "SPRITE_MONSTER",
-          spriteId = 76,
+          sprite = "SPRITE_MEWTWO",
+          spriteId = 163,
           type = 0,
           x = 9,
           y = 3,
@@ -464,8 +464,8 @@ local DATA = {
           script = 9967,
           scriptKey = "00:26ef",
           sight = 0,
-          sprite = "SPRITE_ROCKET",
-          spriteId = 53,
+          sprite = "SPRITE_ARCHER",
+          spriteId = 103,
           type = 0,
           x = 8,
           y = 3,
@@ -480,8 +480,8 @@ local DATA = {
           script = 16582,
           scriptKey = "82:40c6",
           sight = 0,
-          sprite = "SPRITE_BIRD",
-          spriteId = 78,
+          sprite = "SPRITE_MURKROW",
+          spriteId = 164,
           type = 0,
           x = 7,
           y = 2,
@@ -1296,7 +1296,7 @@ local DATA = {
       { frames = 50, op = "pause" },
       { id = 48, op = "special" },
       { id = 51, op = "special" },
-      { args = { 14, 64 }, op = "variablesprite" },
+      { args = { 14, 104 }, op = "variablesprite" },
       { id = 94, op = "special" },
       { id = 51, op = "special" },
       { frames = 15, op = "pause" },
@@ -1449,7 +1449,7 @@ local DATA = {
       { frames = 50, op = "pause" },
       { id = 48, op = "special" },
       { id = 51, op = "special" },
-      { args = { 14, 64 }, op = "variablesprite" },
+      { args = { 14, 104 }, op = "variablesprite" },
       { id = 94, op = "special" },
       { id = 51, op = "special" },
       { frames = 15, op = "pause" },
@@ -1946,6 +1946,56 @@ local DATA = {
       { op = "end" },
     },
   },
+  spriteOrder = {
+    ["103"] = "SPRITE_ARCHER",
+    ["104"] = "SPRITE_GIOVANNI",
+    ["163"] = "SPRITE_MEWTWO",
+    ["164"] = "SPRITE_MURKROW",
+  },
+  sprites = {
+    {
+      frames = 6,
+      id = "SPRITE_ARCHER",
+      image = "assets/sprites/archer.png",
+      palette = "PAL_OW_BLUE",
+      paletteId = 1,
+      source = "Crystal Legacy",
+      spriteType = "WALKING_SPRITE",
+      walker = true,
+    },
+    {
+      frames = 6,
+      id = "SPRITE_GIOVANNI",
+      image = "assets/sprites/giovanni.png",
+      palette = "PAL_OW_BROWN",
+      paletteId = 3,
+      source = "Crystal Legacy",
+      spriteType = "WALKING_SPRITE",
+      walker = true,
+    },
+    {
+      frames = 2,
+      id = "SPRITE_MEWTWO",
+      image = "assets/sprites/mewtwo.png",
+      palette = "PAL_OW_RED",
+      paletteId = 0,
+      source = "Crystal Legacy",
+      species = "MEWTWO",
+      spriteType = "POKEMON_SPRITE",
+      walker = false,
+    },
+    {
+      frames = 2,
+      id = "SPRITE_MURKROW",
+      image = "assets/sprites/murkrow.png",
+      palette = "PAL_OW_RED",
+      paletteId = 0,
+      source = "Crystal Legacy",
+      species = "MURKROW",
+      spriteType = "POKEMON_SPRITE",
+      walker = false,
+    },
+  },
   text = {
     ["80:4155"] = "Hi. Welcome to our\nTRAINING HALL.\fYou may battle a\ntrainer once per\vday.{DONE}",
     ["80:419f"] = "{STRBUF} is your\nopponent today.{DONE}",
@@ -2094,6 +2144,18 @@ end
 return function(mod)
   local stats = { applied = 0, failed = 0 }
   local scripts, maps = numberKeys(DATA.scripts), numberKeys(DATA.maps)
+
+  -- 0. Legacy's new overworld sprites, on sprite numbers vanilla leaves free.
+  for _, rec in ipairs(DATA.sprites) do
+    local r = copy(rec)
+    r.image = mod.path .. "/" .. rec.image
+    register(mod, "sprites", rec.id, r, stats)
+  end
+  local order = mod.content.constants:get("spriteOrder")
+  if order then
+    for num, name in pairs(numberKeys(DATA.spriteOrder)) do order[num] = name end
+    patch(mod, "constants", "spriteOrder", order, stats)
+  end
 
   -- 1. Legacy's text, movements and scripts, under their own (bank $80+) keys.
   each(DATA.text, function(id, s) register(mod, "text", id, s, stats) end)
