@@ -23,7 +23,7 @@ only translates their work into gen1recomp's mod format.
 | [Shop Changes](mods/crystal_legacy_shops) | Shop stock and prices, Celadon TM upgrades, the Flower Shop berry clerk | ✅ ready to try |
 | [Rematches](mods/crystal_legacy_rematches) | Gym leaders after the Elite Four; Elite Four and Lance with 16 badges | ✅ ready to try (Red: see Story) |
 | [Legacy Hard Mode](mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore and Gen 1/3 later |
-| Story Changes | Team Rocket and rival story, new trainer classes, Mewtwo and the Red rematch, dialogue | 🚧 planned (see [porting notes](docs/porting-notes.md)) |
+| [Story Changes](mods/crystal_legacy_story) | Trainer House trio, Archer, Mewtwo and the Red rematch so far | 🟡 first maps ported; more to come |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes
 and Rematches are written so that either can be installed without the other.
@@ -49,6 +49,7 @@ tools/parse.py    reads pokecrystal-style data tables
 tools/legacy_diff.py  diffs Crystal Legacy against its fork point
 tools/build.py    generates the data mods under mods/
 tools/package.py  zips each mod as <id>-<version>.zip
+tools/story/      Story Changes: assemble Legacy maps with RGBDS, decode with gen1recomp
 tools/test.sh     modkit checks + load tests, each mod alone and all together
 tests/            the load test (fixture is generated, not committed)
 ```
@@ -85,6 +86,20 @@ CL_REAL="/tmp/dumps/crystal10" tools/test.sh path/to/gen1recomp base
 its 2,477 `.asm` files match that commit byte for byte, more than any other
 commit. Diffing against it keeps pokecrystal's own later refactors out of the
 mods.
+
+### Rebuilding Story Changes
+
+Story Changes is built separately, because it needs RGBDS 0.5.2 and a built
+vanilla pokecrystal (for its symbol file):
+
+```bash
+PATH=path/to/rgbds:$PATH make -C base crystal
+python3 tools/story/build_story.py --base base --legacy legacy --rgbds path/to/rgbds --engine path/to/gen1recomp --work /tmp/story-work
+```
+
+Everything ROM-derived (the built ROM, the patched scratch ROM, the decoded
+output) stays in `--work`. Only Crystal Legacy's own scripts and text end up
+in the mod.
 
 ## Releasing
 

@@ -139,6 +139,8 @@ def build(base):
                             {"op": "closetext"}, {"op": "end"}]
             objs.append({"index": i, "sprite": "SPRITE_CLERK", "x": i, "y": 1, "scriptKey": key})
         maps[mid] = {"id": mid, "name": mid, "objects": objs}
+    for mid in ("TRAINER_HOUSE_B1F", "RADIO_TOWER_5F", "TEAM_ROCKET_BASE_B3F", "SILVER_CAVE_ROOM_3"):
+        maps[mid] = {"id": mid, "name": mid, "objects": []}
     maps["GOLDENROD_FLOWER_SHOP"] = {"id": "GOLDENROD_FLOWER_SHOP", "name": "GOLDENROD_FLOWER_SHOP",
         "objects": [{"index": 1, "sprite": "SPRITE_TEACHER", "x": 2, "y": 4, "scriptKey": "fx:guide"}]}
     return {

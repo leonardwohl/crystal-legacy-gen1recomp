@@ -67,16 +67,32 @@ Mt. Mortar, Mahogany Mart, Lake of Rage, Kurt's house, the Goldenrod Flower
 Shop's Squirtbottle/Gold Berry flow, and the Rocket trigger after the last of
 the three middle gyms.
 
-Those need a real compiler from Legacy's script source to gen1recomp rows:
-labels, movements, new objects, and Legacy's new event flags remapped onto
-unused vanilla ones. The three new trainer classes also need their art.
-Dialogue tweaks to vanilla text need the vanilla text keys, found by aligning
-vanilla script source with the decoded rows at load time.
+These are ported by `tools/story/`, which has no hand-written script
+compiler:
+
+1. `assemble.py` assembles Legacy's map files with RGBDS against vanilla
+   pokecrystal's constants and macros, so every constant gets vanilla's
+   number by name. Labels outside the file are pinned at their vanilla
+   addresses (from a vanilla build's symbol file), and Legacy-only names come
+   from an explicit table: new trainer classes 68-70, new events on unused
+   vanilla event ids, new variable sprite slots $fd/$fe, and stand-ins for
+   new overworld sprites. Each map goes in its own bank from $80 up.
+2. `patch_rom.py` appends those banks to a scratch vanilla ROM and repoints
+   the maps' headers at them.
+3. `extract_story.lua` runs gen1recomp's own importer on that ROM and keeps
+   only the Legacy banks and the maps' event records, so the output is
+   exactly what gen1recomp would have decoded.
+4. `build_story.py` adds the new trainer classes (with Legacy's art
+   coloured from its palettes) and writes the mod.
+
+The tests check that every script, text and movement a Story row or map
+event points at exists, and run the Trainer House, Archer and Red flows in
+gen1recomp's script VM against real imported data.
 
 ## Next steps, roughly by value
 
-1. **Story Changes**, starting with the self-contained pieces: the Trainer
-   House trio, Archer, and Mewtwo with the Red rematch.
+1. **More Story Changes maps**, by adding them to `MAPS` in
+   `tools/story/build_story.py`, and porting Legacy's overworld sprites.
 2. **Hardcore Mode** for Legacy Hard Mode, and Gen 1 caps from Yellow Legacy.
 3. **New items:** register the fossils with fresh item indices and add the
    scripts that hand them out.

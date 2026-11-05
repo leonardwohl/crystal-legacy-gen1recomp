@@ -246,6 +246,90 @@ local CHECKS = {
     local _, lb = talk(firstBattleKey("CHAMPION"), { badges = 16 })
     T.eq(lb and lb.id, "CHAMPION_REMATCH", "rematches: Lance rematch member id")
   end,
+  crystal_legacy_story = function()
+    -- Every key a story row or map event points at must exist afterwards.
+    local missing = {}
+    local function need(kind, key)
+      if not key then return end
+      -- The synthetic fixture has no vanilla scripts; there, check only the
+      -- story's own keys (banks $80 up). Real data checks everything.
+      if not real and not tostring(key):match("^8%x:") then return end
+      local ok = (kind == "text" and data.gen2Text[key] ~= nil)
+        or (kind == "movement" and data.gen2Scripts.movements and data.gen2Scripts.movements[key] ~= nil)
+        or (kind == "script" and data.gen2Scripts[key] ~= nil)
+      if not ok then missing[#missing + 1] = kind .. " " .. tostring(key) end
+    end
+    local storyMaps = { "TRAINER_HOUSE_B1F", "RADIO_TOWER_5F", "TEAM_ROCKET_BASE_B3F", "SILVER_CAVE_ROOM_3" }
+    for _, id in ipairs(storyMaps) do
+      local m = data.gen2Maps[id] or {}
+      for _, o in ipairs(m.objects or {}) do
+        need("script", o.scriptKey)
+        if o.trainer then need("text", o.trainer.seenText) need("text", o.trainer.winText) end
+      end
+      for _, list in ipairs({ m.bgEvents or {}, m.coordEvents or {}, m.callbacks or {} }) do
+        for _, e in ipairs(list) do need("script", e.scriptKey) end
+      end
+      for _, sc in pairs(m.sceneScripts or {}) do need("script", sc.scriptKey) end
+    end
+    for key, rows in pairs(data.gen2Scripts) do
+      if type(key) == "string" and key:match("^8%x:") then
+        for _, r in ipairs(rows) do
+          need("script", r.script) need("text", r.text) need("text", r.winText)
+          need("text", r.lossText) need("movement", r.movement)
+        end
+      end
+    end
+    for _, m in ipairs(missing) do print("missing: " .. m) end
+    T.eq(#missing, 0, "story: every referenced script/text/movement exists")
+    if not real then return end
+    local Vm = require("src.script.gen2.Vm")
+    local Events = require("src.world.gen2.Events")
+    local Trainers = require("src.world.gen2.Trainers")
+    local function run(key, opts)
+      local events = Events.new()
+      for _, id in ipairs(opts.events or {}) do events:set(id, true) end
+      local battle, seen = nil, {}
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, events, {
+        showText = function(b, onDone) seen[#seen + 1] = tostring(b) if onDone then onDone() end end,
+        yesorno = function(f) f(true) end,
+        readVar = function(id) return (opts.vars or {})[id] or 0 end,
+        lookupTrainer = function(c, m) return Trainers.lookup(data.gen2Trainers, c, m) end,
+        startBattle = function(t, w, done) battle = battle or (t or w) done("win") end,
+        -- The real special handlers, so e.g. `special TrainerHouse` answers
+        -- as it does in game (no Mystery Gift trainer -> FALSE).
+        specialOrder = data.gen2Constants and data.gen2Constants.specialOrder,
+        save = function() return {} end,
+      })
+      vm:start(key)
+      for _ = 1, 2000 do if not vm:running() then break end vm:update() end
+      return battle, table.concat(seen, " | ")
+    end
+    local th = data.gen2Maps.TRAINER_HOUSE_B1F
+    local thKey = th.coordEvents and th.coordEvents[1] and th.coordEvents[1].scriptKey
+    local mon = run(thKey, { vars = { [11] = 1 } })
+    T.eq(mon and mon.name, "SMITH", "story: Monday's Trainer House opponent is Smith")
+    local tue = run(thKey, { vars = { [11] = 2 } })
+    T.eq(tue and tue.name, "CRAIG", "story: Tuesday is Craig")
+    local wed = run(thKey, { vars = { [11] = 3 } })
+    T.eq(wed and wed.className, "PKMN TRAINER", "story: Wednesday is Weebra's class")
+    local function scriptLoading(classId)
+      for key, rows in pairs(data.gen2Scripts) do
+        if type(key) == "string" and key:match("^8%x:") then
+          for _, r in ipairs(rows) do
+            if r.op == "loadtrainer" and r.class == classId then return key end
+          end
+        end
+      end
+    end
+    local archer = data.gen2Trainers.classes.ROCKET_LEADER
+    T.eq(archer and archer.index, 69, "story: Archer's class registered")
+    local b = run(scriptLoading(69), {})
+    T.eq(b and b.name, "ARCHER", "story: Radio Tower / Rocket Base battle is Archer")
+    T.eq(type(archer.pic) == "string" and archer.pic:find("archer.png", 1, true) ~= nil, true,
+      "story: Archer has his Legacy art")
+    local red = data.gen2Trainers.classes.RED
+    T.eq(red and #red.trainers >= 2, true, "story: Red has a rematch team")
+  end,
   crystal_legacy_shops = function()
     T.eq(data.gen2Marts.lists ~= nil, true, "shops: mart table present")
     local Vm = require("src.script.gen2.Vm")
