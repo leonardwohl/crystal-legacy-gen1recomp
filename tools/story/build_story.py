@@ -33,13 +33,60 @@ import build as B  # noqa: E402
 
 MOD_ID = "crystal_legacy_story"
 
-# Legacy map file -> gen1recomp map id.
-MAPS = {
-    "TrainerHouseB1F": "TRAINER_HOUSE_B1F",
-    "RadioTower5F": "RADIO_TOWER_5F",
-    "TeamRocketBaseB3F": "TEAM_ROCKET_BASE_B3F",
-    "SilverCaveRoom3": "SILVER_CAVE_ROOM_3",
+# Every map Crystal Legacy changed is ported, except the ones whose scripts
+# another mod already rewrites (porting both would double up rematch offers
+# and badge switches), and the Move Deleter's house, whose Move Reminder is
+# new engine code gen1recomp has no counterpart for.
+EXCLUDE = {
+    # Rematches / Trainer Changes / Hard Mode (Johto gyms, Elite Four)
+    "VioletGym", "AzaleaGym", "GoldenrodGym", "EcruteakGym", "MahoganyGym",
+    "OlivineGym", "CianwoodGym", "BlackthornGym1F",
+    "WillsRoom", "KogasRoom", "BrunosRoom", "KarensRoom", "LancesRoom",
+    # Shop Changes
+    "CeladonDeptStore3F", "CeladonDeptStore5F",
+    # Move Reminder (no gen1recomp counterpart yet)
+    "MoveDeletersHouse",
 }
+EVENT_IDS = os.path.join(HERE, "event_ids.json")
+SPRITE_IDS = os.path.join(HERE, "sprite_ids.json")
+
+
+def gen1recomp_map_ids(base, engine):
+    """pokecrystal map constant -> gen1recomp map id, matched by (group, number).
+
+    gen1recomp names maps after a newer pokecrystal (DANCE_THEATER, not
+    DANCE_THEATRE), so names are matched through the numbers both share.
+    """
+    import re as _re
+    by_num, group, num = {}, 0, 0
+    for line in open(os.path.join(base, "constants/map_constants.asm")):
+        line = line.split(";")[0]
+        if "MACRO" in line:
+            continue
+        if _re.match(r"\s*newgroup\b", line):
+            group, num = group + 1, 0
+        m = _re.match(r"\s*map_const\s+(\w+)", line)
+        if m:
+            num += 1
+            by_num[m.group(1)] = (group, num)
+    manifest = json.load(open(os.path.join(engine, "tools/rom_manifest_crystal.json")))
+    names = {(g["group"], g["map"]): g["name"] for g in manifest["constants"]["mapGroups"]}
+    return {const: names[gm] for const, gm in by_num.items() if gm in names}
+
+
+def story_maps(base, legacy, engine):
+    """{Legacy map file: gen1recomp map id} for every changed, non-excluded map."""
+    consts = B._legacy_map_constants(base)
+    rename = gen1recomp_map_ids(base, engine)
+    ids = {f: rename[c] for f, c in consts.items() if c in rename}
+    out = {}
+    for f in sorted(os.listdir(os.path.join(legacy, "maps"))):
+        if not f.endswith(".asm") or f[:-4] in EXCLUDE:
+            continue
+        a, b = os.path.join(base, "maps", f), os.path.join(legacy, "maps", f)
+        if os.path.exists(a) and open(a, "rb").read() != open(b, "rb").read():
+            out[f[:-4]] = ids[f[:-4]]
+    return out
 
 # New trainer classes: index (as assemble.LEGACY_ONLY), display name, the
 # Legacy art, and the vanilla class whose music / AI / prize money they borrow.
@@ -49,6 +96,17 @@ NEW_CLASSES = [
     {"id": "PKMNTRAINERF", "name": "PKMN TRAINER", "pic": "pkmntrainerf",
      "palette_from": "cal", "like": "CAL"},
 ]
+
+# Legacy's fossils take vanilla's unused item slots $93-$95 (ITEM_93..95 in
+# gen1recomp), as they do in Legacy. data/items/{names,descriptions,attributes}.asm.
+FOSSILS = {
+    "ITEM_93": {"name": "OLD AMBER", "description": "Fossilized resin<NEXT>containing DNA."},
+    "ITEM_94": {"name": "DOME FOSSIL", "description": "A fossilized<NEXT>POKéMON shell."},
+    "ITEM_95": {"name": "HELIX FOSSIL", "description": "A fossilized<NEXT>POKéMON shell."},
+}
+for _f in FOSSILS.values():
+    _f.update({"price": 0, "pocket": "KEY_ITEM", "pocketId": 2, "canToss": False,
+               "canSelect": False})
 
 # Parties the Story maps load from existing classes, by Legacy member index.
 EXTRA_PARTIES = [("CAL", 3), ("CAL", 4), ("RED", 2)]
@@ -80,11 +138,25 @@ def main():
     for k in ("base", "legacy", "rgbds", "engine", "work"):
         ap.add_argument("--" + k, required=True)
     a = ap.parse_args()
+    MAPS = story_maps(a.base, a.legacy, a.engine)
     files = list(MAPS)
     mod_dir = os.path.join(ROOT, "mods", MOD_ID)
+    # Sprite numbers are stored in saves (variable sprite slots): pinned too.
+    pinned_sprites = json.load(open(SPRITE_IDS)) if os.path.exists(SPRITE_IDS) else {}
     sprite_defs, sprite_records, sprite_order = SP.port(
-        a.base, a.legacy, files, os.path.join(mod_dir, "assets"))
-    r = assemble.build(a.base, a.legacy, a.rgbds, a.work, files, dict(sprite_defs))
+        a.base, a.legacy, files, os.path.join(mod_dir, "assets"), pinned_sprites)
+    with open(SPRITE_IDS, "w") as fh:
+        json.dump(dict(pinned_sprites, **sprite_defs), fh, indent=2, sort_keys=True)
+        fh.write("\n")
+    # Event ids are stored in saves, so once given out they never change.
+    pinned = json.load(open(EVENT_IDS)) if os.path.exists(EVENT_IDS) else {}
+    r = assemble.build(a.base, a.legacy, a.rgbds, a.work, files,
+                       dict(sprite_defs, **pinned))
+    events = dict(pinned, **r["newEvents"])
+    with open(EVENT_IDS, "w") as fh:
+        json.dump(events, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+    r["newEvents"] = events
     patched = os.path.join(a.work, "patched.gbc")
     run([sys.executable, "-I", os.path.join(HERE, "patch_rom.py"), "--base", a.base,
          "--work", a.work, "--rom", "pokecrystal.gbc", "--out", patched] + files)
@@ -144,6 +216,7 @@ def main():
                  for mid in MAPS.values()},
         "classes": classes, "parties": parties, "extras": extra_fields,
         "newEvents": r["newEvents"],
+        "items": FOSSILS,
         "sprites": sprite_records,
         "spriteOrder": {str(k): v for k, v in sprite_order.items()},
     }
@@ -187,7 +260,8 @@ def write_mod(mod_dir, data):
         "id": MOD_ID, "name": "Crystal Legacy: Story Changes", "version": B.VERSION, "api": 2,
         "games": ["crystal"], "entry": "main.lua", "profile": "content", "category": "CONTENT",
         "game_version": B.GAME_VERSION, "priority": 100, "dependencies": [],
-        "optional_dependencies": ["crystal_legacy_trainers", "crystal_legacy_rematches"],
+        "optional_dependencies": ["crystal_legacy_trainers", "crystal_legacy_rematches",
+                                  "crystal_legacy_shops"],
         "conflicts": [], "permissions": [],
         "description": "Crystal Legacy's story changes, starting with the Trainer House "
                        "trio, Archer and the Silver Cave Mewtwo / Red rematch. "
@@ -213,6 +287,11 @@ return function(mod)
     for num, name in pairs(numberKeys(DATA.spriteOrder)) do order[num] = name end
     patch(mod, "constants", "spriteOrder", order, stats)
   end
+
+  -- Legacy's fossils, on vanilla's unused item slots.
+  each(DATA.items, function(id, fields)
+    if mod.content.items:get(id) then patch(mod, "items", id, fields, stats) end
+  end)
 
   -- 1. Legacy's text, movements and scripts, under their own (bank $80+) keys.
   each(DATA.text, function(id, s) register(mod, "text", id, s, stats) end)
@@ -249,7 +328,14 @@ return function(mod)
   end
 
   -- 4. The maps' events now point at Legacy's scripts.
-  each(maps, function(id, fields) patch(mod, "maps", id, fields, stats) end)
+  -- (Every map exists in a real Crystal import; a test dataset may hold fewer.)
+  each(maps, function(id, fields)
+    if mod.content.maps:get(id) then
+      patch(mod, "maps", id, fields, stats)
+    else
+      mod.log:info("map %s not in this dataset; skipped", id)
+    end
+  end)
 
   -- Custom DVs / stat exp on story teams (Trainer House, Red).
   local extras = numberKeys(DATA.extras)

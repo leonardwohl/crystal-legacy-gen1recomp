@@ -23,7 +23,7 @@ only translates their work into gen1recomp's mod format.
 | [Shop Changes](mods/crystal_legacy_shops) | Shop stock and prices, Celadon TM upgrades, the Flower Shop berry clerk | ✅ ready to try |
 | [Rematches](mods/crystal_legacy_rematches) | Gym leaders after the Elite Four; Elite Four and Lance with 16 badges | ✅ ready to try (Red: see Story) |
 | [Legacy Hard Mode](mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore and Gen 1/3 later |
-| [Story Changes](mods/crystal_legacy_story) | Trainer House trio, Archer, Mewtwo and the Red rematch so far | 🟡 first maps ported; more to come |
+| [Story Changes](mods/crystal_legacy_story) | 130 changed maps: Rocket story, Trainer House, fossils, legendaries, Red rematch, new sprites, dialogue | ✅ ready to try |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes
 and Rematches are written so that either can be installed without the other.

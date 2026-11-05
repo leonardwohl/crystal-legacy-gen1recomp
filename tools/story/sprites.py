@@ -62,6 +62,33 @@ def _sprite_mons(legacy):
     return mons
 
 
+def _species_icon_files(legacy):
+    """SPECIES -> icon png, via menu_icons.asm, IconPointers and gfx/icons.asm."""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from asm import species_order
+    icons = []
+    for line in open(os.path.join(legacy, "data/pokemon/menu_icons.asm")):
+        m = re.match(r"\s*db\s+(ICON_\w+)", line)
+        if m:
+            icons.append(m.group(1))
+    by_species = dict(zip(species_order(legacy), icons))
+    consts = _consts(os.path.join(legacy, "constants/icon_constants.asm"))
+    labels = []
+    for line in open(os.path.join(legacy, "data/icon_pointers.asm")):
+        m = re.match(r"\s*dw\s+(\w+)", line)
+        if m:
+            labels.append(m.group(1))
+    files = {}
+    for line in open(os.path.join(legacy, "gfx/icons.asm")):
+        m = re.match(r'\s*(\w+):+\s*INCBIN\s+"([^"]+)\.2bpp"', line)
+        if m:
+            files[m.group(1)] = m.group(2) + ".png"
+    return {sp: os.path.join(legacy, files[labels[consts[ic]]])
+            for sp, ic in by_species.items() if ic in consts and consts[ic] < len(labels)
+            and labels[consts[ic]] in files}
+
+
 def convert(src, dst):
     """Any 4-shade PNG -> RGBA greys with white transparent."""
     im = Image.open(src)
@@ -81,32 +108,43 @@ def used_sprites(legacy, map_files):
     return names
 
 
-def port(base, legacy, map_files, asset_dir):
-    """Return (constant defs for assemble.py, sprite records, spriteOrder additions)."""
+def port(base, legacy, map_files, asset_dir, pinned=None):
+    """Return (constant defs for assemble.py, sprite records, spriteOrder additions).
+
+    `pinned` holds numbers given out by earlier builds ({name: number}); they
+    are kept, because saves store variable-sprite slots by number.
+    """
+    pinned = dict(pinned or {})
     vanilla = _consts(os.path.join(base, "constants/sprite_constants.asm"))
     lvals = _consts(os.path.join(legacy, "constants/sprite_constants.asm"))
     lpoke = lvals["SPRITE_POKEMON"] if "SPRITE_POKEMON" in lvals else 0x80
     rows, gfx, mons = _overworld_rows(legacy), _gfx_files(legacy), _sprite_mons(legacy)
+    icon_files = _species_icon_files(legacy)
     new = sorted(n for n in used_sprites(legacy, map_files)
                  if n not in vanilla and n in lvals and lvals[n] < 0xE0)
     defs, records, order = {}, [], {}
-    next_walk, next_mon = FIRST_WALKING, FIRST_POKEMON
+    taken = set(pinned.values())
+
+    def alloc(lo, hi):
+        for n in range(lo, hi + 1):
+            if n not in taken:
+                taken.add(n)
+                return n
+        raise AssertionError("out of free sprite numbers in $%x-$%x" % (lo, hi))
     os.makedirs(os.path.join(asset_dir, "sprites"), exist_ok=True)
     for name in new:
         value = lvals[name]
         base_name = name.lower().replace("sprite_", "", 1)
         if value >= lpoke:
             species = mons[value - lpoke]
-            src = os.path.join(legacy, "gfx/icons", species.lower() + ".png")
-            assert next_mon <= LAST_POKEMON, "out of free Pokemon sprite numbers"
-            num, next_mon = next_mon, next_mon + 1
+            src = icon_files[species]
+            num = pinned.get(name) or alloc(FIRST_POKEMON, LAST_POKEMON)
             rec = {"frames": 2, "walker": False, "spriteType": "POKEMON_SPRITE",
                    "palette": "PAL_OW_RED", "paletteId": 0, "species": species}
         else:
             label, tiles, kind, pal = rows[value - 1]
             src = os.path.join(legacy, gfx[label])
-            assert next_walk <= LAST_WALKING, "out of free walking sprite numbers"
-            num, next_walk = next_walk, next_walk + 1
+            num = pinned.get(name) or alloc(FIRST_WALKING, LAST_WALKING)
             frames = Image.open(src).size[1] // 16
             rec = {"frames": frames, "walker": kind == "WALKING_SPRITE" or frames >= 6,
                    "spriteType": kind if kind in SPRITE_TYPES else "WALKING_SPRITE",

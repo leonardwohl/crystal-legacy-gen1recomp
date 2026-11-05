@@ -289,6 +289,9 @@ local CHECKS = {
     local order = data.gen2Constants and data.gen2Constants.spriteOrder or {}
     T.eq(order[0x68], "SPRITE_GIOVANNI", "story: sprite $68 is Giovanni")
     T.eq(order[0xa3], "SPRITE_MEWTWO", "story: sprite $a3 is Mewtwo")
+    if data.items.ITEM_93 then
+      T.eq(data.items.ITEM_93.name, "OLD AMBER", "story: Old Amber on item slot $93")
+    end
     if not real then return end
     local Vm = require("src.script.gen2.Vm")
     local Events = require("src.world.gen2.Events")
@@ -312,6 +315,26 @@ local CHECKS = {
       for _ = 1, 2000 do if not vm:running() then break end vm:update() end
       return battle, table.concat(seen, " | ")
     end
+    -- Smoke test: every entry point on every Story map runs in the VM without
+    -- a Lua error (answers "yes" to questions, wins every battle).
+    local entries = {}
+    for id, m in pairs(data.gen2Maps) do
+      local function add(k) if k and tostring(k):match("^%x%x:") and tonumber(k:sub(1, 2), 16) >= 0x80 then entries[#entries + 1] = k end end
+      for _, o in ipairs(m.objects or {}) do add(o.scriptKey) end
+      for _, e in ipairs(m.bgEvents or {}) do add(e.scriptKey) end
+      for _, e in ipairs(m.coordEvents or {}) do add(e.scriptKey) end
+      for _, sc in pairs(m.sceneScripts or {}) do add(sc.scriptKey) end
+      for _, cb in ipairs(m.callbacks or {}) do add(cb.scriptKey) end
+    end
+    table.sort(entries)
+    local crashed = {}
+    for _, key in ipairs(entries) do
+      local ok, err = pcall(run, key, { vars = {} })
+      if not ok then crashed[#crashed + 1] = key .. ": " .. tostring(err) end
+    end
+    for i = 1, math.min(#crashed, 10) do print("crash: " .. crashed[i]) end
+    T.eq(#entries > 300, true, "story: smoke test found the map entry points (" .. #entries .. ")")
+    T.eq(#crashed, 0, "story: every map entry point runs without a Lua error")
     local th = data.gen2Maps.TRAINER_HOUSE_B1F
     local thKey = th.coordEvents and th.coordEvents[1] and th.coordEvents[1].scriptKey
     local mon = run(thKey, { vars = { [11] = 1 } })

@@ -14,7 +14,8 @@
   "dependencies": [],
   "optional_dependencies": [
     "crystal_legacy_trainers",
-    "crystal_legacy_rematches"
+    "crystal_legacy_rematches",
+    "crystal_legacy_shops"
   ],
   "conflicts": [],
   "permissions": [],

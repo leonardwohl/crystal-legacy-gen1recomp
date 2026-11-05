@@ -42,6 +42,11 @@ LEGACY_ONLY = {
     "SMITH": 3, "CRAIG": 4, "GIOVANNI": 1, "ARCHER": 1, "WEEBRA": 1,
     # variable sprite slots
     "SPRITE_TRAINER_HOUSE_PKMN_TRAINER": 0xFD, "SPRITE_RADIOTOWER_GIOVANNI": 0xFE,
+    # Legacy's fossils, on the item slots vanilla leaves unused (as Legacy does)
+    "OLD_AMBER": 0x93, "DOME_FOSSIL": 0x94, "HELIX_FOSSIL": 0x95,
+    "REVIVE_OLD_AMBER": 1, "REVIVE_DOME_FOSSIL": 2, "REVIVE_HELIX_FOSSIL": 3,
+    # Legacy's new berry shops: Shop Changes serves these mart ids
+    "MART_BERRYS": 1003, "MART_BERRYS_2": 1004,
     # hard mode: an engine flag id no script sets; any battle type value
     "ENGINE_HARD_MODE": 0x7FF, "ENGINE_HARDCORE_MODE": 0x7FF,
     "BATTLETYPE_SET": 0, "BATTLETYPE_SETNOITEMS": 0, "BATTLETYPE_CANLOSE_SETNOITEMS": 0,
@@ -94,6 +99,36 @@ def specials(base):
 
 
 def build(base, legacy, rgbds, work, maps, extra_consts):
+    """Assemble twice: once a bank per map to measure, then packed."""
+    first = _build(base, legacy, rgbds, work, maps, extra_consts, None)
+    sizes = section_sizes(os.path.join(work, "story.map"))
+    banks, fill = {}, []
+    for i, m in sorted(enumerate(maps), key=lambda im: -sizes.get("story_%d" % im[0], 0)):
+        size = sizes.get("story_%d" % i, 0)
+        for b, used in enumerate(fill):
+            if used + size <= 0x4000:
+                fill[b] += size
+                banks[m] = FIRST_BANK + b
+                break
+        else:
+            fill.append(size)
+            banks[m] = FIRST_BANK + len(fill) - 1
+    assert FIRST_BANK + len(fill) - 1 <= 0xFF, "story maps do not fit below bank $100"
+    second = _build(base, legacy, rgbds, work, maps, extra_consts, banks)
+    second["banks"] = banks
+    return second
+
+
+def section_sizes(map_path):
+    sizes = {}
+    for line in open(map_path):
+        m = re.search(r'SECTION: \$[0-9a-fA-F]+-\$[0-9a-fA-F]+ \(\$([0-9a-fA-F]+) bytes?\) \["(story_\d+)"\]', line)
+        if m:
+            sizes[m.group(2)] = int(m.group(1), 16)
+    return sizes
+
+
+def _build(base, legacy, rgbds, work, maps, extra_consts, banks):
     os.makedirs(os.path.join(work, "maps"), exist_ok=True)
     sym = load_sym(os.path.join(base, "pokecrystal.sym"))
     defs = dict(LEGACY_ONLY)
@@ -119,7 +154,10 @@ def build(base, legacy, rgbds, work, maps, extra_consts):
                 with open(src, encoding="utf-8", errors="replace") as a, \
                         open(dst, "w", encoding="utf-8") as b:
                     b.write(a.read())
-                fh.write('SECTION "story_%d", ROMX[$4000], BANK[$%x]\n' % (i, FIRST_BANK + i))
+                if banks is None:
+                    fh.write('SECTION "story_%d", ROMX[$4000], BANK[$%x]\n' % (i, FIRST_BANK + i))
+                else:
+                    fh.write('SECTION "story_%d", ROMX, BANK[$%x]\n' % (i, banks[m]))
                 fh.write('INCLUDE "maps/%s.asm"\n' % m)
             for n, ((bank, addr), names) in enumerate(sorted(stubs.items())):
                 if bank == 0 and addr < 0x4000:
@@ -133,7 +171,7 @@ def build(base, legacy, rgbds, work, maps, extra_consts):
                              cwd=work, capture_output=True, text=True, env=env)
         if asm.returncode != 0:
             sys.exit("rgbasm failed:\n" + asm.stderr[-4000:])
-        link = subprocess.run(["rgblink", "-n", "story.sym", "-o", "story.gbc", "main.o"],
+        link = subprocess.run(["rgblink", "-n", "story.sym", "-m", "story.map", "-o", "story.gbc", "main.o"],
                               cwd=work, capture_output=True, text=True, env=env)
         if link.returncode == 0:
             return {"stubs": sorted(stubs.items()), "newEvents": new_events,
@@ -151,8 +189,19 @@ def build(base, legacy, rgbds, work, maps, extra_consts):
                 continue
             if name.startswith("EVENT_") and name in legacy_events:
                 # New Legacy event flag: put it on an id vanilla never uses.
+                # Ids already given out (event_ids.json) arrive as defs, so
+                # this only runs for flags no earlier build placed.
+                taken = set(v for k, v in defs.items() if k.startswith("EVENT_"))
+                while free_events and free_events[0] in taken:
+                    free_events.pop(0)
                 defs[name] = free_events.pop(0)
                 new_events[name] = defs[name]
+                continue
+            if name.endswith("StdScript") and "StdScripts" in sym:
+                # A Legacy-only std script (KantoLevelCapUpdateScript, Hard
+                # Mode only): an id past the table, which gen1recomp's VM
+                # treats as a script that just ends.
+                defs[name] = sym["StdScripts"][1] + 3 * 500
                 continue
             if name in sym:
                 bank, addr = sym[name]
