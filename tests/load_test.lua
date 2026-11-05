@@ -97,6 +97,37 @@ local CHECKS = {
     T.eq(enc.grass.SPROUT_TOWER_2F.rates.MORN, 5, "encounters: rates stay raw bytes")
     T.eq(#enc.grass.SPROUT_TOWER_2F.slots.NITE, 7, "encounters: 7 night slots")
   end,
+  legacy_hard_mode = function()
+    local Mon = require("src.battle.gen2.Mon")
+    local base = function() return 5000 end
+    local ctxFor = function(level, exp)
+      return { mon = { species = "CHIKORITA", level = level, experience = exp },
+               battle = { data = data } }
+    end
+    T.eq(Runtime.call("exp.gain", base, ctxFor(10, 1000)), 0, "hard mode: no exp at cap 10")
+    local growth = Mon.growthFor(data, p.CHIKORITA.growthRate)
+    local at10 = Mon.experienceForLevel(growth, 10)
+    local got = Runtime.call("exp.gain", base, ctxFor(9, at10 - 50))
+    T.eq(got, 50, "hard mode: exp stops exactly at the cap")
+    T.eq(type(data.screens and data.screens.Gen2PackMenu), "table", "hard mode: PACK wrapper registered")
+    local candy = data.gen2ItemEffects and data.gen2ItemEffects.RARE_CANDY
+    local r = candy and candy.use({ mon = { species = "CHIKORITA", level = 10 }, data = data })
+    T.eq(r and r.used, false, "hard mode: Rare Candy refused at cap")
+    -- Simulate a trainer battle: the PACK must refuse, then work again after.
+    local refusedText, closed = nil, false
+    local ui = { refuseMenu = function(_, text) refusedText = text end }
+    Runtime.emit("battle.started", { kind = "trainer", battle = ui })
+    local inst = data.screens.Gen2PackMenu.new(nil, { battle = true,
+      onClose = function() closed = true end })
+    inst:update(0)
+    T.eq(closed, true, "hard mode: PACK closes in a trainer battle")
+    T.eq(refusedText ~= nil, true, "hard mode: refusal message shown")
+    Runtime.emit("battle.ended", { battle = ui, result = "win" })
+    Runtime.emit("battle.started", { kind = "wild", battle = ui })
+    local ok, wildInst = pcall(data.screens.Gen2PackMenu.new, nil, { battle = true })
+    T.eq(ok and wildInst and wildInst.update ~= nil and closed, true,
+      "hard mode: wild battles get the normal PACK")
+  end,
   crystal_legacy_shops = function()
     T.eq(data.gen2Marts.lists ~= nil, true, "shops: mart table present")
   end,

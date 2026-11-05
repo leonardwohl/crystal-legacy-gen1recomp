@@ -105,3 +105,19 @@ def species_order(root):
             names.append(args[0])
     # The first block of consts is the 251 species; stop at the egg marker.
     return names[:251]
+
+
+def const_values(path):
+    """{NAME: value} honouring const_def / const_skip / const_next."""
+    out, value = {}, 0
+    for op, args in statements(path):
+        if op == "const_def":
+            value = evaluate(args[0]) if args and args[0] else 0
+        elif op == "const_skip":
+            value += evaluate(args[0]) if args and args[0] else 1
+        elif op == "const_next":
+            value = evaluate(args[0])
+        elif op == "const" and args:
+            out[args[0]] = value
+            value += 1
+    return out

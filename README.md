@@ -22,7 +22,7 @@ only translates their work into gen1recomp's mod format.
 | [Ghost/Dark Switch](mods/crystal_legacy_ghost_dark) | Ghost moves special, Dark moves physical (Gold, Silver, Crystal) | ✅ ready to try |
 | [Shop Changes](mods/crystal_legacy_shops) | Shop stock and prices | ✅ existing shops; 🚧 new shops |
 | Rematches | Gym leader, Elite Four and Red rematches | 🚧 in progress |
-| Legacy Hard Mode | Level caps, Set mode, no items in trainer battles | 🚧 in progress |
+| [Legacy Hard Mode](mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore and Gen 1/3 later |
 | Story Changes | Team Rocket and rival story, new trainer classes, scaling leaders | 🚧 planned |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes

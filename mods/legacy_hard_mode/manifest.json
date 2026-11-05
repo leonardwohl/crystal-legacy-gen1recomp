@@ -1,0 +1,18 @@
+{
+  "id": "legacy_hard_mode",
+  "name": "Legacy Hard Mode",
+  "version": "0.2.0",
+  "api": 2,
+  "games": ["crystal"],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "DIFFICULTY",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "permissions": ["engine_internals"],
+  "description": "Crystal Legacy's Hard Mode: level caps that rise with your badges, Set style and no items in trainer battles. Each rule can be toggled. Unofficial port of Pokemon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}
