@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.zip
+/legacy/
+/pokecrystal/
+/base/
+/tests/fixture_crystal.lua
