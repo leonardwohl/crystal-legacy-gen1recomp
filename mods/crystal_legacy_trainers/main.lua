@@ -569,6 +569,241 @@ local DATA = {
     ZEKE = 5,
     ZUKI = 4,
   },
+  scaling = {
+    {
+      class = "PRYCE",
+      tiers = {
+        {
+          badges = 5,
+          party = {
+            id = "PRYCE_5BADGES",
+            name = "PRYCE",
+            party = {
+              {
+                level = 33,
+                moves = { "SURF", "SPIKES", "AURORA_BEAM", "RAIN_DANCE" },
+                species = "CLOYSTER",
+              },
+              {
+                level = 34,
+                moves = { "FAINT_ATTACK", "METAL_CLAW", "REFLECT", "ICE_PUNCH" },
+                species = "SNEASEL",
+              },
+              {
+                level = 33,
+                moves = { "ICE_PUNCH", "PSYCHIC_M", "RAIN_DANCE", "LOVELY_KISS" },
+                species = "JYNX",
+              },
+              {
+                level = 34,
+                moves = { "SURF", "AURORA_BEAM", "SNORE", "REST" },
+                species = "DEWGONG",
+              },
+              {
+                item = "GOLD_BERRY",
+                level = 35,
+                moves = { "HEADBUTT", "EARTHQUAKE", "ROCK_SMASH", "BLIZZARD" },
+                species = "PILOSWINE",
+              },
+            },
+            trainerType = "TRAINERTYPE_ITEM_MOVES",
+          },
+        },
+        {
+          badges = 6,
+          party = {
+            id = "PRYCE_6BADGES",
+            name = "PRYCE",
+            party = {
+              {
+                level = 37,
+                moves = { "SURF", "SPIKES", "AURORA_BEAM", "RAIN_DANCE" },
+                species = "CLOYSTER",
+              },
+              {
+                level = 37,
+                moves = { "FAINT_ATTACK", "METAL_CLAW", "REFLECT", "BLIZZARD" },
+                species = "SNEASEL",
+              },
+              {
+                level = 37,
+                moves = { "ICE_PUNCH", "PSYCHIC_M", "SHADOW_BALL", "LOVELY_KISS" },
+                species = "JYNX",
+              },
+              {
+                level = 37,
+                moves = { "SURF", "AURORA_BEAM", "SNORE", "REST" },
+                species = "DEWGONG",
+              },
+              {
+                item = "GOLD_BERRY",
+                level = 38,
+                moves = { "HEADBUTT", "EARTHQUAKE", "ROCK_SMASH", "BLIZZARD" },
+                species = "PILOSWINE",
+              },
+            },
+            trainerType = "TRAINERTYPE_ITEM_MOVES",
+          },
+        },
+      },
+    },
+    {
+      class = "JASMINE",
+      tiers = {
+        {
+          badges = 5,
+          party = {
+            id = "JASMINE_5BADGES",
+            name = "JASMINE",
+            party = {
+              {
+                level = 35,
+                moves = { "SPIKES", "DRILL_PECK", "SWAGGER", "STEEL_WING" },
+                species = "SKARMORY",
+              },
+              {
+                level = 35,
+                moves = { "RAIN_DANCE", "SURF", "RECOVER", "ANCIENTPOWER" },
+                species = "CORSOLA",
+              },
+              {
+                level = 35,
+                moves = { "THUNDERBOLT", "TRI_ATTACK", "RAIN_DANCE", "THUNDER" },
+                species = "MAGNETON",
+              },
+              {
+                item = "FOCUS_BAND",
+                level = 36,
+                moves = { "TWINEEDLE", "METAL_CLAW", "AGILITY", "SWORDS_DANCE" },
+                species = "SCIZOR",
+              },
+              {
+                item = "QUICK_CLAW",
+                level = 36,
+                moves = { "CRUNCH", "EARTHQUAKE", "ROCK_SLIDE", "IRON_TAIL" },
+                species = "STEELIX",
+              },
+            },
+            trainerType = "TRAINERTYPE_ITEM_MOVES",
+          },
+        },
+        {
+          badges = 6,
+          party = {
+            id = "JASMINE_6BADGES",
+            name = "JASMINE",
+            party = {
+              {
+                level = 37,
+                moves = { "SPIKES", "DRILL_PECK", "SWAGGER", "STEEL_WING" },
+                species = "SKARMORY",
+              },
+              {
+                level = 37,
+                moves = { "RAIN_DANCE", "SURF", "RECOVER", "ANCIENTPOWER" },
+                species = "CORSOLA",
+              },
+              {
+                level = 37,
+                moves = { "THUNDERBOLT", "TRI_ATTACK", "RAIN_DANCE", "THUNDER" },
+                species = "MAGNETON",
+              },
+              {
+                item = "FOCUS_BAND",
+                level = 38,
+                moves = { "TWINEEDLE", "METAL_CLAW", "AGILITY", "SWORDS_DANCE" },
+                species = "SCIZOR",
+              },
+              {
+                item = "QUICK_CLAW",
+                level = 38,
+                moves = { "CRUNCH", "EARTHQUAKE", "ROCK_SLIDE", "IRON_TAIL" },
+                species = "STEELIX",
+              },
+            },
+            trainerType = "TRAINERTYPE_ITEM_MOVES",
+          },
+        },
+      },
+    },
+    {
+      class = "CHUCK",
+      tiers = {
+        {
+          badges = 5,
+          party = {
+            id = "CHUCK_5BADGES",
+            name = "CHUCK",
+            party = {
+              {
+                level = 35,
+                moves = { "TRIPLE_KICK", "ROLLING_KICK", "DIG", "PURSUIT" },
+                species = "HITMONTOP",
+              },
+              {
+                level = 35,
+                moves = { "ROCK_SLIDE", "THUNDERPUNCH", "LOW_KICK", "FAINT_ATTACK" },
+                species = "SUDOWOODO",
+              },
+              {
+                level = 34,
+                moves = { "LOW_KICK", "KARATE_CHOP", "ICE_PUNCH", "RAGE" },
+                species = "PRIMEAPE",
+              },
+              {
+                level = 35,
+                moves = { "ROCK_SMASH", "TWINEEDLE", "VICEGRIP", "HARDEN" },
+                species = "PINSIR",
+              },
+              {
+                item = "BLACKBELT_I",
+                level = 36,
+                moves = { "HYPNOSIS", "MIND_READER", "SURF", "DYNAMICPUNCH" },
+                species = "POLIWRATH",
+              },
+            },
+            trainerType = "TRAINERTYPE_ITEM_MOVES",
+          },
+        },
+        {
+          badges = 6,
+          party = {
+            id = "CHUCK_6BADGES",
+            name = "CHUCK",
+            party = {
+              {
+                level = 37,
+                moves = { "TRIPLE_KICK", "ROLLING_KICK", "DIG", "PURSUIT" },
+                species = "HITMONTOP",
+              },
+              {
+                level = 37,
+                moves = { "ROCK_SLIDE", "THUNDERPUNCH", "LOW_KICK", "FAINT_ATTACK" },
+                species = "SUDOWOODO",
+              },
+              {
+                level = 37,
+                moves = { "DYNAMICPUNCH", "KARATE_CHOP", "ROCK_SLIDE", "RAGE" },
+                species = "PRIMEAPE",
+              },
+              {
+                level = 37,
+                moves = { "SUBMISSION", "TWINEEDLE", "STRENGTH", "SWORDS_DANCE" },
+                species = "PINSIR",
+              },
+              {
+                item = "BLACKBELT_I",
+                level = 38,
+                moves = { "ICE_PUNCH", "MIND_READER", "SURF", "DYNAMICPUNCH" },
+                species = "POLIWRATH",
+              },
+            },
+            trainerType = "TRAINERTYPE_ITEM_MOVES",
+          },
+        },
+      },
+    },
+  },
   trainers = {
     BEAUTY = {
       {
@@ -7420,6 +7655,7 @@ local DATA = {
       },
     },
   },
+  varBadges = 7,
 }
 
 -- Patch one record, logging instead of aborting when gen1recomp refuses it,
@@ -7471,12 +7707,111 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
   end)
 end
 
+local function copy(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = copy(x) end
+  return out
+end
+
+local function slice(list, from)
+  local out = {}
+  for i = from, #list do out[#out + 1] = copy(list[i]) end
+  return out
+end
+
+-- Append a rematch party to a trainer class; returns (class index, member).
+-- Reads the merged list, so it lands after Trainer Changes' teams when that
+-- mod is installed (it is an optional dependency, so it always loads first).
+local function appendParty(mod, class, row, stats)
+  local rec = mod.content.trainers:get(class)
+  if not (rec and rec.trainers and rec.index) then
+    mod.log:warn("trainer class %s not found; rematch skipped", class)
+    stats.failed = stats.failed + 1
+    return nil
+  end
+  local list = rec.trainers
+  local member = #list + 1
+  local new = copy(row)
+  new.index = member
+  list[member] = new
+  patch(mod, "trainers", class, { trainers = list }, stats)
+  return rec.index, member
+end
+
+local function addText(mod, id, value, stats)
+  local ok, err = pcall(mod.content.text.register, mod.content.text, id, value)
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("text %s: %s", id, tostring(err))
+  end
+end
+
+local function setScript(mod, verb, id, rows, stats)
+  local reg = mod.content.map_scripts
+  local ok, err = pcall(reg[verb], reg, id, rows)
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("map script %s: %s", id, tostring(err))
+  end
+end
+
+
+-- Pryce, Jasmine and Chuck can be fought in any order in Crystal Legacy, so
+-- each brings a team for the badge count you arrive with. Every vanilla script
+-- list that loads their first team gets Legacy's `readvar VAR_BADGES /
+-- ifequal` switch in front of that row.
+local function scaleLeader(mod, S, stats)
+  local rec = mod.content.trainers:get(S.class)
+  if not rec then return end
+  local members = {}
+  for _, tier in ipairs(S.tiers) do
+    local _, member = appendParty(mod, S.class, tier.party, stats)
+    if not member then return end
+    members[#members + 1] = { badges = tier.badges, member = member }
+  end
+  -- Collect first: overriding while iterating the registry is not safe.
+  local found = {}
+  for key, rows in mod.content.map_scripts:each() do
+    for i, row in ipairs(type(rows) == "table" and rows or {}) do
+      if type(row) == "table" and row.op == "loadtrainer"
+          and row.class == rec.index and row.member == 1 then
+        found[#found + 1] = { key = key, rows = rows, at = i }
+        break
+      end
+    end
+  end
+  local hits = 0
+  for _, f in ipairs(found) do
+    local key, rows, at = f.key, f.rows, f.at
+    do
+      hits = hits + 1
+      local new = copy(rows)
+      local inserts = { { op = "readvar", var = DATA.varBadges } }
+      for n, m in ipairs(members) do
+        local tail = slice(new, at)
+        tail[1].member = m.member
+        local tailKey = ("crystal_legacy_trainers:%s:%d:%d"):format(S.class, hits, n)
+        setScript(mod, "register", tailKey, tail, stats)
+        inserts[#inserts + 1] = { op = "ifequal", value = m.badges, script = tailKey }
+      end
+      for i = #inserts, 1, -1 do table.insert(new, at, inserts[i]) end
+      setScript(mod, "override", key, new, stats)
+    end
+  end
+  if hits == 0 then
+    mod.log:warn("no vanilla %s battle script found; team scaling skipped", S.class)
+    stats.failed = stats.failed + 1
+  end
+end
+
 return function(mod)
   local stats = { applied = 0, failed = 0 }
 
   each(DATA.trainers, function(class, rows)
     patch(mod, "trainers", class, { trainers = rows }, stats)
   end)
+  for _, S in ipairs(DATA.scaling) do scaleLeader(mod, S, stats) end
   wrapTrainerExtras(mod, DATA.extras, DATA.memberIndex)
   mod.log:info("Crystal Legacy: Trainer Changes: %d patches applied, %d refused", stats.applied, stats.failed)
 end

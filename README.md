@@ -16,14 +16,14 @@ only translates their work into gen1recomp's mod format.
 | Mod | What it does | Status |
 |---|---|---|
 | [Pokémon Changes](mods/crystal_legacy_pokemon) | Base stats, learnsets, TM/HM and egg moves, evolutions, move changes | ✅ ready to try |
-| [Trainer Changes](mods/crystal_legacy_trainers) | Every trainer and leader team, with items, moves, DVs | ✅ ready to try |
+| [Trainer Changes](mods/crystal_legacy_trainers) | Every trainer and leader team, with items, moves, DVs; Pryce, Jasmine and Chuck scale to your badges | ✅ ready to try |
 | [Encounter Changes](mods/crystal_legacy_encounters) | Wild grass and surfing Pokémon | ✅ ready to try |
 | [Fast Eggs](mods/fast_eggs) | Eggs hatch in about a quarter of the steps (Gold, Silver, Crystal) | ✅ ready to try |
 | [Ghost/Dark Switch](mods/crystal_legacy_ghost_dark) | Ghost moves special, Dark moves physical (Gold, Silver, Crystal) | ✅ ready to try |
 | [Shop Changes](mods/crystal_legacy_shops) | Shop stock and prices, Celadon TM upgrades, the Flower Shop berry clerk | ✅ ready to try |
 | [Rematches](mods/crystal_legacy_rematches) | Gym leaders after the Elite Four; Elite Four and Lance with 16 badges | ✅ ready to try (Red: see Story) |
 | [Legacy Hard Mode](mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore and Gen 1/3 later |
-| Story Changes | Team Rocket and rival story, new trainer classes, scaling leaders | 🚧 planned |
+| Story Changes | Team Rocket and rival story, new trainer classes, Mewtwo and the Red rematch, dialogue | 🚧 planned (see [porting notes](docs/porting-notes.md)) |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes
 and Rematches are written so that either can be installed without the other.

@@ -98,6 +98,28 @@ local CHECKS = {
       "CAL", "CAL3", { {} })
     T.eq(out[1].statExp and out[1].statExp.hp, 0xFE01, "trainers: Smith's Raikou stat exp")
   end,
+  crystal_legacy_trainers_scaling = function()
+    local Vm = require("src.script.gen2.Vm")
+    local Events = require("src.world.gen2.Events")
+    local Trainers = require("src.world.gen2.Trainers")
+    local function fight(key, badges)
+      local got
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, Events.new(), {
+        showText = function(_, onDone) if onDone then onDone() end end,
+        readVar = function(id) return id == 7 and badges or 0 end,
+        lookupTrainer = function(c, m) return Trainers.lookup(data.gen2Trainers, c, m) end,
+        startBattle = function(trainer, _, done) got = trainer done("win") end,
+      })
+      vm:start(key)
+      for _ = 1, 200 do if not vm:running() then break end vm:update() end
+      return got
+    end
+    T.eq(fight("fx:PRYCE:battle", 4).member, 1, "scaling: Pryce with 4 badges -> first team")
+    T.eq(fight("fx:PRYCE:battle", 5).id, "PRYCE_5BADGES", "scaling: 5 badges -> second team")
+    T.eq(fight("fx:PRYCE:battle", 6).roster[1].level >= 37, true, "scaling: 6 badges -> strongest")
+    T.eq(fight("fx:CHUCK:battle", 5).id, "CHUCK_5BADGES", "scaling: Chuck too")
+    T.eq(fight("fx:JASMINE:battle", 6).id, "JASMINE_6BADGES", "scaling: Jasmine too")
+  end,
   crystal_legacy_encounters = function()
     T.eq(enc.grass.SPROUT_TOWER_2F.rates.MORN, 5, "encounters: rates stay raw bytes")
     T.eq(#enc.grass.SPROUT_TOWER_2F.slots.NITE, 7, "encounters: 7 night slots")
@@ -215,6 +237,7 @@ local CHECKS = {
 for _, id in ipairs(ids) do
   if CHECKS[id] then CHECKS[id]() end
 end
+if loader.mods.crystal_legacy_trainers then CHECKS.crystal_legacy_trainers_scaling() end
 
 T.sdk.restoreRuntime()
 Logger.warn, Logger.error = realWarn, realError

@@ -805,6 +805,7 @@ local function setScript(mod, verb, id, rows, stats)
   end
 end
 
+
 -- Gym leaders: the leader's own talk script becomes a small wrapper. After
 -- the Elite Four (and once this leader is beaten) it offers the rematch, as
 -- Crystal Legacy does; otherwise, or on NO, it runs the vanilla script.

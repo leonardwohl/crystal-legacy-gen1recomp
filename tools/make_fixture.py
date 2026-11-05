@@ -108,6 +108,11 @@ def build(base):
                         {"op": "writetext", "text": key}, {"op": "waitbutton"},
                         {"op": "closetext"}, {"op": "end"}]
     scripts["fx:guide"] = [{"op": "end"}]
+    for cls in ("PRYCE", "JASMINE", "CHUCK"):
+        scripts["fx:%s:battle" % cls] = [
+            {"op": "winlosstext", "winText": "fx:%s" % cls},
+            {"op": "loadtrainer", "class": classes[cls]["index"], "member": 1},
+            {"op": "startbattle"}, {"op": "reloadmapafterbattle"}, {"op": "end"}]
     for cls, member_event in (("WILL", "EVENT_BEAT_ELITE_4_WILL"), ("KOGA", "EVENT_BEAT_ELITE_4_KOGA"),
                               ("BRUNO", "EVENT_BEAT_ELITE_4_BRUNO"), ("KAREN", "EVENT_BEAT_ELITE_4_KAREN"),
                               ("CHAMPION", "EVENT_BEAT_CHAMPION_LANCE")):

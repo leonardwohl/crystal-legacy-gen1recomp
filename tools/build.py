@@ -108,16 +108,29 @@ def build_pokemon(ctx):
 
 def build_trainers(ctx):
     rows, extras = ctx["trainersVanilla"], ctx["extrasVanilla"]
-    data = {"trainers": rows, "extras": extras,
+    scaling = []
+    # maps/{Mahogany,Olivine,Cianwood}Gym.asm: ifequal 5 -> team 2, 6 -> team 3.
+    for cls in ("PRYCE", "JASMINE", "CHUCK"):
+        tiers = []
+        for badges, legacy_index in ((5, 2), (6, 3)):
+            row = next(r for r in ctx["trainersAll"][cls] if r["index"] == legacy_index)
+            party = {k: v for k, v in row.items() if k != "index"}
+            party["id"] = "%s_%dBADGES" % (cls, badges)
+            tiers.append({"badges": badges, "party": party})
+        scaling.append({"class": cls, "tiers": tiers})
+    data = {"trainers": rows, "extras": extras, "scaling": scaling, "varBadges": 7,
             "memberIndex": {r["id"]: r["index"] for rs in rows.values() for r in rs}}
     body = '''
   each(DATA.trainers, function(class, rows)
     patch(mod, "trainers", class, { trainers = rows }, stats)
   end)
+  for _, S in ipairs(DATA.scaling) do scaleLeader(mod, S, stats) end
   wrapTrainerExtras(mod, DATA.extras, DATA.memberIndex)'''
     n = sum(len(r) for r in rows.values())
     return data, body, ["%d trainer classes, %d parties rewritten to Crystal Legacy's teams" % (
-        len(rows), n), "Held items and movesets included; custom DVs/stat exp where Legacy sets them"]
+        len(rows), n), "Held items and movesets included; custom DVs/stat exp where Legacy sets them",
+        "Pryce, Jasmine and Chuck bring a stronger team if you face them with 5 or 6 badges "
+        "(Crystal Legacy lets you take those three gyms in any order)"]
 
 
 def build_encounters(ctx):
@@ -332,7 +345,7 @@ def build_shops(ctx):
                         "New berry clerk in the Goldenrod Flower Shop (more berries from 7 badges)"]
 
 # ----------------------------------------------------------------- rematches
-REMATCH_RUNTIME = r"""
+SCRIPT_HELPERS = r"""
 local function copy(v)
   if type(v) ~= "table" then return v end
   local out = {}
@@ -382,6 +395,9 @@ local function setScript(mod, verb, id, rows, stats)
   end
 end
 
+"""
+
+REMATCH_RUNTIME = SCRIPT_HELPERS + r"""
 -- Gym leaders: the leader's own talk script becomes a small wrapper. After
 -- the Elite Four (and once this leader is beaten) it offers the rematch, as
 -- Crystal Legacy does; otherwise, or on NO, it runs the vanilla script.
@@ -478,6 +494,57 @@ local function eliteRematch(mod, E, stats)
     setScript(mod, "override", f.key, rows, stats)
   end
   return member
+end
+"""
+
+
+SCALING_RUNTIME = SCRIPT_HELPERS + r"""
+-- Pryce, Jasmine and Chuck can be fought in any order in Crystal Legacy, so
+-- each brings a team for the badge count you arrive with. Every vanilla script
+-- list that loads their first team gets Legacy's `readvar VAR_BADGES /
+-- ifequal` switch in front of that row.
+local function scaleLeader(mod, S, stats)
+  local rec = mod.content.trainers:get(S.class)
+  if not rec then return end
+  local members = {}
+  for _, tier in ipairs(S.tiers) do
+    local _, member = appendParty(mod, S.class, tier.party, stats)
+    if not member then return end
+    members[#members + 1] = { badges = tier.badges, member = member }
+  end
+  -- Collect first: overriding while iterating the registry is not safe.
+  local found = {}
+  for key, rows in mod.content.map_scripts:each() do
+    for i, row in ipairs(type(rows) == "table" and rows or {}) do
+      if type(row) == "table" and row.op == "loadtrainer"
+          and row.class == rec.index and row.member == 1 then
+        found[#found + 1] = { key = key, rows = rows, at = i }
+        break
+      end
+    end
+  end
+  local hits = 0
+  for _, f in ipairs(found) do
+    local key, rows, at = f.key, f.rows, f.at
+    do
+      hits = hits + 1
+      local new = copy(rows)
+      local inserts = { { op = "readvar", var = DATA.varBadges } }
+      for n, m in ipairs(members) do
+        local tail = slice(new, at)
+        tail[1].member = m.member
+        local tailKey = ("crystal_legacy_trainers:%s:%d:%d"):format(S.class, hits, n)
+        setScript(mod, "register", tailKey, tail, stats)
+        inserts[#inserts + 1] = { op = "ifequal", value = m.badges, script = tailKey }
+      end
+      for i = #inserts, 1, -1 do table.insert(new, at, inserts[i]) end
+      setScript(mod, "override", key, new, stats)
+    end
+  end
+  if hits == 0 then
+    mod.log:warn("no vanilla %s battle script found; team scaling skipped", S.class)
+    stats.failed = stats.failed + 1
+  end
 end
 """
 
@@ -599,6 +666,7 @@ MODS = [
                 "evolutions and move changes."},
     {"id": "crystal_legacy_trainers", "name": "Crystal Legacy: Trainer Changes",
      "category": "BALANCE", "games": ["crystal"], "build": build_trainers,
+     "runtime": SCALING_RUNTIME,
      "summary": "Every trainer, gym leader and Elite Four team rebuilt as in Crystal Legacy."},
     {"id": "crystal_legacy_encounters", "name": "Crystal Legacy: Encounter Changes",
      "category": "CONTENT", "games": ["crystal"], "build": build_encounters,
