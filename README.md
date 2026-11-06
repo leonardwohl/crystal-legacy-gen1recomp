@@ -34,12 +34,24 @@ left to existing gen1recomp mods.
 
 ## Install
 
+### From inside gen1recomp (recommended)
+
 1. Use gen1recomp **0.4.x** with a US Pokémon Crystal ROM (1.0 or 1.1) imported.
-2. Download the `.zip` for each mod you want from
-   [Releases](https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases),
-   or from the artifacts of the latest **Package mods** workflow run.
-3. In gen1recomp, open **MODS → Import mod .zip** and pick each zip.
-4. Enable them for Crystal. A new game is recommended.
+2. Open **MODS → Find mods**, add a source, and enter one of these feeds:
+   - **Stable** (releases): `leonardwohl/crystal-legacy-gen1recomp`
+   - **Dev** (a build of every push to `main`, for testing):
+     `https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/site/dev/data/index.json`
+3. Install the mods you want from the list, and enable them for Crystal. A new
+   game is recommended.
+
+Dev builds are versioned `<next patch>-dev.<build>` (e.g. `0.2.2-dev.17`), so
+each new one shows up as an update, and the next release supersedes them.
+
+### By hand
+
+Download the `.zip` for each mod from
+[Releases](https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases)
+and use **MODS → Import mod .zip**.
 
 ## Repository layout
 
@@ -48,7 +60,8 @@ mods/<id>/        one folder per mod: manifest.json, main.lua, README.md
 tools/parse.py    reads pokecrystal-style data tables
 tools/legacy_diff.py  diffs Crystal Legacy against its fork point
 tools/build.py    generates the data mods under mods/
-tools/package.py  zips each mod as <id>-<version>.zip
+tools/package.py  zips each mod as <id>-<version>.zip (--dev N for dev builds)
+tools/make_index.py  writes the gen1recomp mod feed (site/data, site/dev/data)
 tools/story/      Story Changes: assemble Legacy maps with RGBDS, decode with gen1recomp
 tools/test.sh     modkit checks + load tests, each mod alone and all together
 tests/            the load test (fixture is generated, not committed)

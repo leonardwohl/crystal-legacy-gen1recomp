@@ -2,17 +2,27 @@ name: Package mods
 
 # Every push and pull request: zip each mod and upload it as its own
 # artifact, so any one of them can be downloaded and tried on its own.
+#
+# Every push to main also publishes the rolling `dev` prerelease, with the
+# zips stamped <next patch>-dev.<run number>, and updates the dev feed
+# (site/dev/data/index.json) that gen1recomp's Find mods tab can follow.
+#
 # A release (every mod's zip attached) is published either by pushing a tag
 # like v0.2.0, by creating a release for such a tag in GitHub's UI, or from
 # Actions -> Package mods -> Run workflow with a version, which creates the
-# tag on the selected commit itself.
+# tag on the selected commit itself. It also updates the stable feed
+# (site/data/index.json).
+#
 # All mods share one version (gen1recomp's updater reads the version from the
 # release tag and then picks <id>-<version>.zip from that release's assets).
+# The feeds are committed back to main with [skip ci]; pushes that only touch
+# site/ do not run this workflow, so that never loops.
 
 on:
   push:
     branches: [main]
     tags: ["v*"]
+    paths-ignore: ["site/**"]
   pull_request:
   release:
     types: [published]
@@ -28,6 +38,8 @@ permissions:
 env:
   # The release tag for this run, or empty when this run is not a release.
   TAG: ${{ github.event.inputs.version || (github.event_name == 'release' && github.event.release.tag_name) || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
+  # A push to main (not a tag, not a release): a dev build.
+  DEV: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.run_number || '' }}
 
 jobs:
   list:
@@ -52,6 +64,8 @@ jobs:
         run: |
           if [[ -n "$TAG" ]]; then
             python3 tools/package.py --out dist --version "$TAG" "${{ matrix.mod }}"
+          elif [[ -n "$DEV" ]]; then
+            python3 tools/package.py --out dist --dev "$DEV" "${{ matrix.mod }}"
           else
             python3 tools/package.py --out dist "${{ matrix.mod }}"
           fi
@@ -67,7 +81,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency: feeds
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -84,3 +102,37 @@ jobs:
             gh release create "$TAG" dist/*.zip --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" --title "$TAG" --generate-notes
           fi
+      - name: Update the stable feed
+        run: |
+          python3 tools/make_index.py --repo "$GITHUB_REPOSITORY" --tag "$TAG" \
+            --dist dist --out site/data/index.json
+          bash tools/commit_feed.sh "Update stable mod feed to $TAG [skip ci]"
+
+  dev:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency: feeds
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish the rolling dev prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete dev --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create dev dist/*.zip --repo "$GITHUB_REPOSITORY" --prerelease \
+            --target "$GITHUB_SHA" --title "Dev build $DEV" \
+            --notes "Rolling build of main at $GITHUB_SHA (run $DEV). For testing; installs as <next patch>-dev.$DEV."
+      - name: Update the dev feed
+        run: |
+          python3 tools/make_index.py --repo "$GITHUB_REPOSITORY" --tag dev \
+            --dist dist --out site/dev/data/index.json --prerelease --channel dev
+          bash tools/commit_feed.sh "Update dev mod feed to build $DEV [skip ci]"
