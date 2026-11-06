@@ -1,6 +1,6 @@
 # Crystal Legacy: Bug Fixes
 
-The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses and the trainer AI.
+The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses, the trainer AI and the Glacier Badge.
 
 ## What it changes
 
@@ -9,6 +9,7 @@ The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: P
 - The catch formula's high-HP rounding quirk is kept, as in Crystal Legacy
 - Trainer AI: Mean Look is favoured when *your* Pokémon is badly poisoned (vanilla checked its own)
 - Trainer AI: Full Heal and Full Restore also end Nightmare
+- The Glacier Badge always boosts Special Defense as well as Special Attack (vanilla's check depended on the boosted Special Attack's value)
 - Already correct in gen1recomp, so nothing to change: Counter / Mirror Coat after a non-damaging turn, PP Ups in the 'has PP' check, a Transformed Pokémon caught as Ditto, and Full Heal leaving the AI confused
 
 Games: crystal. Needs gen1recomp >=0.4.0 <0.5.0.

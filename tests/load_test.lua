@@ -143,6 +143,7 @@ local CHECKS = {
       volatile = function() return vol end, itemDef = function() return nil end, emit = function() end }
     Battle.enemyUseItem(fake, "FULL_HEAL")
     T.eq(vol.nightmare, nil, "fixes: AI Full Heal ends Nightmare")
+    T.eq(Battle.glacierBoostsSpDef(300), true, "fixes: Glacier Badge always boosts Sp. Def")
   end,
   crystal_legacy_qol = function()
     -- Running: B halves the step on foot and on water, never on the bike.

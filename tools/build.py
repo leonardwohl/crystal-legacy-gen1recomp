@@ -1025,6 +1025,8 @@ def build_fixes(ctx):
         "Trainer AI: Mean Look is favoured when *your* Pokémon is badly poisoned (vanilla "
         "checked its own)",
         "Trainer AI: Full Heal and Full Restore also end Nightmare",
+        "The Glacier Badge always boosts Special Defense as well as Special Attack "
+        "(vanilla's check depended on the boosted Special Attack's value)",
         "Already correct in gen1recomp, so nothing to change: Counter / Mirror Coat after a "
         "non-damaging turn, PP Ups in the 'has PP' check, a Transformed Pokémon caught "
         "as Ditto, and Full Heal leaving the AI confused",
@@ -1083,6 +1085,11 @@ local function fixAi(mod)
   end
   -- engine/battle/ai/items.asm AI_HealStatus: also clear SUBSTATUS_NIGHTMARE.
   local Battle = engine(mod, "src.battle.gen2.Battle", "AI items")
+  -- engine/battle/core.asm BadgeStatBoosts: Legacy's push/pop af keeps the
+  -- badge bits, so the Glacier Badge always boosts Special Defense too.
+  if Battle and Battle.glacierBoostsSpDef then
+    Battle.glacierBoostsSpDef = function() return true end
+  end
   if Battle and Battle.enemyUseItem then
     local enemyUseItem = Battle.enemyUseItem
     Battle.enemyUseItem = function(self, item, ...)
@@ -1196,7 +1203,7 @@ MODS = [
      "category": "BALANCE", "games": ["crystal"], "build": build_fixes,
      "runtime": FIXES_RUNTIME, "permissions": ["engine_internals"],
      "summary": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still "
-                "reproduces: Poké Ball catch bonuses and the trainer AI."},
+                "reproduces: Poké Ball catch bonuses, the trainer AI and the Glacier Badge."},
     {"id": "crystal_legacy_qol", "name": "Crystal Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
      "runtime": QOL_RUNTIME, "permissions": ["engine_internals"],

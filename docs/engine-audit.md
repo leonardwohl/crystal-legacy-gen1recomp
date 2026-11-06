@@ -62,11 +62,12 @@ its source. Ported fixes live in **Crystal Legacy: Bug Fixes**.
 | Wild Pokémon's status lowers its stats on send-out | `core.asm` | 🔜 check |
 | Confusion self-damage ignores held-item boosts | `effect_commands.asm` | 🔜 check |
 | Boosted stats capped at 999 (Light Ball etc.) | `effect_commands.asm` | 🔜 check |
-| Psywave never deals 0 | `effect_commands.asm` | 🔜 check |
+| Psywave never deals 0 | `effect_commands.asm` | ➖ gen1recomp floors it at 1 for both sides |
 | Beat Up, Rage / AncientPower effect order | `effect_commands.asm`, `data/moves/effects.asm` | 🔜 check |
-| Level 1 has 0 exp (Medium-Slow underflow) | `engine/pokemon/experience.asm` | 🔜 check |
+| Level 1 has 0 exp (Medium-Slow underflow) | `engine/pokemon/experience.asm` | ➖ gen1recomp clamps exp at 0 |
 | Breeding uses the party mon's DVs | `engine/pokemon/breeding.asm` | 🔜 check |
-| Can't surf into an object; edge-warp bump sound | `engine/events/overworld.asm`, `player_movement.asm` | 🔜 check |
+| Can't surf into an object | `engine/events/overworld.asm` | ➖ Crystal has gen1recomp's `surfOntoNpc` fix on |
+| Glacier Badge's Special Defense boost depends on the boosted Special Attack | `engine/battle/core.asm` | ✅ |
 
 ## Presentation only (not ported)
 

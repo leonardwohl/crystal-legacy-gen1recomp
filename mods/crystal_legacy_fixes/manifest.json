@@ -17,6 +17,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses and the trainer AI. Unofficial port of Pokémon Crystal Legacy.",
+  "description": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses, the trainer AI and the Glacier Badge. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }
