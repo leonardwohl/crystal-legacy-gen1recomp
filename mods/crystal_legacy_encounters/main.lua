@@ -1776,6 +1776,7 @@ local DATA = {
       },
     },
   },
+  flee = { always = { "RAIKOU", "ENTEI" }, often = { "TOGETIC" }, sometimes = { "UMBREON" } },
 }
 
 -- Patch one record, logging instead of aborting when gen1recomp refuses it,
@@ -1842,5 +1843,16 @@ return function(mod)
       patch(mod, "encounters", kind, value, stats)
     end
   end)
+  -- data/wild/flee_mons.asm: far fewer wild Pokémon run away.
+  local okR, Roamers = pcall(require, "src.core.gen2.Roamers")
+  if okR and Roamers and Roamers.SOMETIMES_FLEE and Roamers.OFTEN_FLEE then
+    for _, t in ipairs({ { Roamers.SOMETIMES_FLEE, DATA.flee.sometimes },
+                         { Roamers.OFTEN_FLEE, DATA.flee.often } }) do
+      for k in pairs(t[1]) do t[1][k] = nil end
+      for _, sp in ipairs(t[2]) do t[1][sp] = true end
+    end
+  else
+    mod.log:warn("flee tables not found; flee changes skipped")
+  end
   mod.log:info("Crystal Legacy: Encounter Changes: %d patches applied, %d refused", stats.applied, stats.failed)
 end

@@ -396,3 +396,73 @@ def contest(root):
             out.append({"chance": evaluate(args[0]), "species": args[1],
                         "min": evaluate(args[2]), "max": evaluate(args[3])})
     return out
+
+
+# ------------------------------------------------------- engine-side tables
+def _db_lists(path):
+    """{label: [first operand of each db]} for label / db / db -1 lists."""
+    out, cur = {}, None
+    for op, args in statements(path):
+        if op == "label":
+            cur = args
+            out.setdefault(cur, [])
+        elif op == "db" and cur is not None and args:
+            if args[0] in ("-1", "$ff"):
+                cur = None
+            else:
+                out[cur].append(args[0])
+    return out
+
+
+def happiness_changes(root):
+    """data/events/happiness_changes.asm rows: [[low, mid, high], ...]."""
+    return [[evaluate(x) for x in a[:3]]
+            for op, a in statements(p(root, "data/events/happiness_changes.asm"))
+            if op == "db" and len(a) >= 3]
+
+
+def flee_lists(root):
+    lists = _db_lists(p(root, "data/wild/flee_mons.asm"))
+    return {"sometimes": lists.get("SometimesFleeMons", []),
+            "often": lists.get("OftenFleeMons", []),
+            "always": lists.get("AlwaysFleeMons", [])}
+
+
+def crit_moves(root):
+    return [m for ms in _db_lists(p(root, "data/moves/critical_hit_moves.asm")).values() for m in ms]
+
+
+def metronome_exceptions(root):
+    return [m for ms in _db_lists(p(root, "data/moves/metronome_exception_moves.asm")).values()
+            for m in ms]
+
+
+def npc_trades(root):
+    """data/events/npc_trades.asm rows, in NPCTRADE_* order."""
+    rows = []
+    for op, a in statements(p(root, "data/events/npc_trades.asm")):
+        if op == "npctrade":
+            atkdef, spdspc = evaluate(a[4]), evaluate(a[5])
+            rows.append({"dialog": a[0], "give": a[1], "get": a[2],
+                         "nickname": a[3].strip('"').split("@")[0],
+                         "dvs": [atkdef, spdspc], "item": a[6], "otId": evaluate(a[7]),
+                         "otName": a[8].strip('"').split("@")[0], "gender": a[9]})
+    return rows
+
+
+def class_dvs(root):
+    """CLASS -> {attack, defense, speed, special} from data/trainers/dvs.asm."""
+    classes = [c for c, _ in trainer_classes(root)]
+    rows = [a for op, a in statements(p(root, "data/trainers/dvs.asm")) if op == "dn"]
+    return {c: dict(zip(("attack", "defense", "speed", "special"), (evaluate(x) for x in r[:4])))
+            for c, r in zip(classes, rows)}
+
+
+def class_items(root):
+    """CLASS -> [item, ...] (the two TRNATTR_ITEM slots) from attributes.asm."""
+    classes = [c for c, _ in trainer_classes(root)]
+    rows = []
+    for op, a in statements(p(root, "data/trainers/attributes.asm")):
+        if op == "db" and len(a) == 2 and all(x.isupper() or x.startswith("NO_") for x in a):
+            rows.append([x for x in a if x != "NO_ITEM"])
+    return dict(zip(classes, rows))

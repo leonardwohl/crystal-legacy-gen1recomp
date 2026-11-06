@@ -77,7 +77,7 @@ def evaluate(expr, consts=None):
             return str(int(t[1:], 16))
         if t.startswith("%"):
             return str(int(t[1:], 2))
-        return t
+        return str(int(t))  # drops leading zeros (OT ID 00283)
 
     e = _NUM.sub(num, e)
     e = re.sub(r"\b[A-Za-z_]\w*\b", lambda m: str(consts[m.group(0)])

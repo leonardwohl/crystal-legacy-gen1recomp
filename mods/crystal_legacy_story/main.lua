@@ -43635,6 +43635,56 @@ local DATA = {
     ["8c:4aac"] = "NIDORAN, shake!{DONE}",
     ["8c:4abd"] = "NIDORAN: Gau gau!{DONE}",
   },
+  trades = {
+    ["2"] = {
+      dvs = { 150, 102 },
+      gender = "TRADE_GENDER_EITHER",
+      get = "ONIX",
+      getIndex = 95,
+      give = "BELLSPROUT",
+      giveIndex = 69,
+      item = "HARD_STONE",
+      nickname = "ROCKY",
+      otId = 48926,
+      otName = "KYLE",
+    },
+    ["3"] = {
+      dvs = { 152, 136 },
+      gender = "TRADE_GENDER_EITHER",
+      get = "VOLTORB",
+      getIndex = 100,
+      give = "KRABBY",
+      giveIndex = 98,
+      item = "MAGNET",
+      nickname = "VOLTY",
+      otId = 29189,
+      otName = "TIM",
+    },
+    ["4"] = {
+      dvs = { 119, 102 },
+      gender = "TRADE_GENDER_FEMALE",
+      get = "MR__MIME",
+      getIndex = 122,
+      give = "DODRIO",
+      giveIndex = 85,
+      item = "TWISTEDSPOON",
+      nickname = "DORIS",
+      otId = 283,
+      otName = "EMY",
+    },
+    ["5"] = {
+      dvs = { 150, 134 },
+      gender = "TRADE_GENDER_EITHER",
+      get = "HAUNTER",
+      getIndex = 93,
+      give = "XATU",
+      giveIndex = 178,
+      item = "MYSTERYBERRY",
+      nickname = "PAUL",
+      otId = 15616,
+      otName = "CHRIS",
+    },
+  },
 }
 
 -- Patch one record, logging instead of aborting when gen1recomp refuses it,
@@ -43935,6 +43985,26 @@ return function(mod)
       mod.log:info("map %s not in this dataset; skipped", id)
     end
   end)
+
+  -- In-game trades (data/events/npc_trades.asm): World reads the event
+  -- tables when it is built, so they are patched as soon as the game exists.
+  local trades = numberKeys(DATA.trades)
+  if next(trades) then
+    mod.events:on("game.ready", function(payload)
+      local game = (payload and payload.game) or mod.game
+      local tables = game and game.data and game.data.gen2EventTables
+      local rows = type(tables) == "table" and tables.trades
+      if type(rows) ~= "table" then
+        mod.log:warn("trade table not loaded; Legacy's trades skipped")
+        return
+      end
+      for i, fields in pairs(trades) do
+        if rows[i] then
+          for k, v in pairs(fields) do rows[i][k] = copy(v) end
+        end
+      end
+    end)
+  end
 
   -- Custom DVs / stat exp on story teams (Trainer House, Red).
   local extras = numberKeys(DATA.extras)

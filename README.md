@@ -8,4 +8,4 @@ based on the fantastic work by the
 `leonardwohl/crystal-legacy-gen1recomp`, and pick the mods you want. Or grab
 the zips from [Releases](https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases).
 
-More detail: [docs/overview.md](docs/overview.md).
+More detail: [docs/overview.md](docs/overview.md) · engine changes: [docs/engine-audit.md](docs/engine-audit.md).

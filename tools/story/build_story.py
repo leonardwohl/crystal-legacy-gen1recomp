@@ -246,6 +246,7 @@ def main():
         "reminderText": reminder_text,
         "sprites": sprite_records,
         "spriteOrder": {str(k): v for k, v in sprite_order.items()},
+        "trades": changed_trades(a.base, a.legacy),
     }
     write_mod(mod_dir, data)
     print("events reused:", r["newEvents"])
@@ -428,6 +429,20 @@ end
 '''
 
 
+def changed_trades(base, legacy):
+    """data/events/npc_trades.asm rows Legacy changed, keyed by 1-based row."""
+    from asm import species_order
+    dex = {sp: i + 1 for i, sp in enumerate(species_order(base))}
+    b, l = D.parse.npc_trades(base), D.parse.npc_trades(legacy)
+    out = {}
+    for i, row in enumerate(l):
+        if i < len(b) and row != b[i]:
+            r = {k: v for k, v in row.items() if k != "dialog"}
+            r["giveIndex"], r["getIndex"] = dex[row["give"]], dex[row["get"]]
+            out[str(i + 1)] = r
+    return out
+
+
 def write_mod(mod_dir, data):
     manifest = {
         "id": MOD_ID, "name": "Crystal Legacy: Story Changes", "version": B.VERSION, "api": 2,
@@ -525,6 +540,26 @@ return function(mod)
       mod.log:info("map %s not in this dataset; skipped", id)
     end
   end)
+
+  -- In-game trades (data/events/npc_trades.asm): World reads the event
+  -- tables when it is built, so they are patched as soon as the game exists.
+  local trades = numberKeys(DATA.trades)
+  if next(trades) then
+    mod.events:on("game.ready", function(payload)
+      local game = (payload and payload.game) or mod.game
+      local tables = game and game.data and game.data.gen2EventTables
+      local rows = type(tables) == "table" and tables.trades
+      if type(rows) ~= "table" then
+        mod.log:warn("trade table not loaded; Legacy's trades skipped")
+        return
+      end
+      for i, fields in pairs(trades) do
+        if rows[i] then
+          for k, v in pairs(fields) do rows[i][k] = copy(v) end
+        end
+      end
+    end)
+  end
 
   -- Custom DVs / stat exp on story teams (Trainer House, Red).
   local extras = numberKeys(DATA.extras)

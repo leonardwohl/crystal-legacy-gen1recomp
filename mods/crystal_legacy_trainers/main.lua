@@ -2,6 +2,98 @@
 -- Crystal Legacy: Trainer Changes: Every trainer, gym leader and Elite Four team rebuilt as in Crystal Legacy.
 
 local DATA = {
+  classDvs = {
+    BEAUTY = { attack = 6, defense = 9, special = 8, speed = 12 },
+    BIKER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    BIRD_KEEPER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    BLACKBELT_T = { attack = 9, defense = 8, special = 8, speed = 8 },
+    BLAINE = { attack = 14, defense = 14, special = 14, speed = 13 },
+    BLUE = { attack = 14, defense = 14, special = 13, speed = 14 },
+    BOARDER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    BOSS = { attack = 12, defense = 12, special = 12, speed = 12 },
+    BROCK = { attack = 13, defense = 14, special = 13, speed = 12 },
+    BRUNO = { attack = 13, defense = 12, special = 13, speed = 13 },
+    BUGSY = { attack = 9, defense = 8, special = 8, speed = 8 },
+    BUG_CATCHER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    BURGLAR = { attack = 9, defense = 8, special = 8, speed = 8 },
+    CAL = { attack = 13, defense = 12, special = 13, speed = 13 },
+    CAMPER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    CHAMPION = { attack = 13, defense = 12, special = 13, speed = 13 },
+    CHUCK = { attack = 9, defense = 8, special = 8, speed = 8 },
+    CLAIR = { attack = 7, defense = 12, special = 13, speed = 13 },
+    COOLTRAINERF = { attack = 7, defense = 12, special = 8, speed = 12 },
+    COOLTRAINERM = { attack = 13, defense = 8, special = 8, speed = 12 },
+    ERIKA = { attack = 13, defense = 13, special = 13, speed = 13 },
+    EXECUTIVEF = { attack = 7, defense = 14, special = 8, speed = 10 },
+    EXECUTIVEM = { attack = 13, defense = 8, special = 8, speed = 10 },
+    FALKNER = { attack = 9, defense = 10, special = 7, speed = 7 },
+    FIREBREATHER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    FISHER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    GENTLEMAN = { attack = 9, defense = 8, special = 8, speed = 8 },
+    GRUNTF = { attack = 7, defense = 14, special = 8, speed = 10 },
+    GRUNTM = { attack = 13, defense = 8, special = 8, speed = 10 },
+    GUITARIST = { attack = 9, defense = 8, special = 8, speed = 8 },
+    HIKER = { attack = 10, defense = 8, special = 8, speed = 8 },
+    JANINE = { attack = 13, defense = 13, special = 13, speed = 13 },
+    JASMINE = { attack = 9, defense = 8, special = 8, speed = 8 },
+    JUGGLER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    KAREN = { attack = 10, defense = 15, special = 15, speed = 13 },
+    KIMONO_GIRL = { attack = 6, defense = 8, special = 10, speed = 8 },
+    KOGA = { attack = 13, defense = 12, special = 13, speed = 13 },
+    LASS = { attack = 5, defense = 8, special = 8, speed = 8 },
+    LT_SURGE = { attack = 11, defense = 12, special = 14, speed = 14 },
+    MEDIUM = { attack = 7, defense = 8, special = 8, speed = 8 },
+    MISTY = { attack = 12, defense = 12, special = 14, speed = 13 },
+    MORTY = { attack = 9, defense = 8, special = 8, speed = 8 },
+    MYSTICALMAN = { attack = 9, defense = 8, special = 8, speed = 8 },
+    OFFICER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    PICNICKER = { attack = 6, defense = 10, special = 8, speed = 10 },
+    PKMNTRAINERF = { attack = 13, defense = 12, special = 13, speed = 13 },
+    POKEFANF = { attack = 6, defense = 13, special = 8, speed = 8 },
+    POKEFANM = { attack = 9, defense = 8, special = 8, speed = 8 },
+    POKEMANIAC = { attack = 9, defense = 8, special = 8, speed = 8 },
+    POKEMON_PROF = { attack = 9, defense = 8, special = 8, speed = 8 },
+    PRYCE = { attack = 9, defense = 10, special = 10, speed = 8 },
+    PSYCHIC_T = { attack = 9, defense = 8, special = 8, speed = 8 },
+    RED = { attack = 15, defense = 13, special = 14, speed = 13 },
+    RIVAL1 = { attack = 13, defense = 13, special = 13, speed = 13 },
+    RIVAL2 = { attack = 13, defense = 13, special = 13, speed = 13 },
+    ROCKET_LEADER = { attack = 11, defense = 11, special = 11, speed = 11 },
+    SABRINA = { attack = 13, defense = 14, special = 13, speed = 13 },
+    SAGE = { attack = 9, defense = 8, special = 8, speed = 8 },
+    SAILOR = { attack = 9, defense = 8, special = 8, speed = 8 },
+    SCHOOLBOY = { attack = 9, defense = 8, special = 8, speed = 8 },
+    SCIENTIST = { attack = 9, defense = 8, special = 8, speed = 8 },
+    SKIER = { attack = 9, defense = 8, special = 8, speed = 8 },
+    SUPER_NERD = { attack = 9, defense = 8, special = 8, speed = 8 },
+    SWIMMERF = { attack = 7, defense = 8, special = 8, speed = 8 },
+    SWIMMERM = { attack = 9, defense = 8, special = 8, speed = 8 },
+    TEACHER = { attack = 6, defense = 8, special = 8, speed = 8 },
+    TWINS = { attack = 6, defense = 8, special = 8, speed = 10 },
+    WHITNEY = { attack = 8, defense = 8, special = 8, speed = 8 },
+    WILL = { attack = 13, defense = 12, special = 13, speed = 13 },
+    YOUNGSTER = { attack = 9, defense = 8, special = 8, speed = 8 },
+  },
+  classItems = {
+    BLAINE = {},
+    BLUE = {},
+    BROCK = {},
+    BRUNO = {},
+    CHAMPION = {},
+    CHUCK = {},
+    CLAIR = {},
+    ERIKA = {},
+    JANINE = {},
+    JASMINE = {},
+    KAREN = {},
+    KOGA = {},
+    LT_SURGE = {},
+    MISTY = {},
+    PRYCE = {},
+    RED = {},
+    SABRINA = {},
+    WILL = {},
+  },
   extras = {
     CAL = {
       [3] = {
@@ -7812,6 +7904,28 @@ return function(mod)
     patch(mod, "trainers", class, { trainers = rows }, stats)
   end)
   for _, S in ipairs(DATA.scaling) do scaleLeader(mod, S, stats) end
+  each(DATA.classItems, function(class, items)
+    if mod.content.trainers:get(class) then
+      -- an empty {} patch is a no-op in gen1recomp's merge, so clear explicitly
+      patch(mod, "trainers", class, { items = next(items) and items or mod.DELETE }, stats)
+    end
+  end)
   wrapTrainerExtras(mod, DATA.extras, DATA.memberIndex)
+  -- Class DVs replace gen1recomp's flat 9/8/8/8 only, so a team's own custom
+  -- DVs (here, Rematches, Story) always win whichever hook runs first.
+  mod.hooks:wrap("trainer.party", function(nextFn, class, member, party)
+    party = nextFn(class, member, party)
+    local dvs = DATA.classDvs[class]
+    if dvs and type(party) == "table" then
+      for _, mon in ipairs(party) do
+        local d = mon.dvs
+        if d and d.attack == 9 and d.defense == 8 and d.speed == 8 and d.special == 8 then
+          mon.dvs = { attack = dvs.attack, defense = dvs.defense,
+                      speed = dvs.speed, special = dvs.special }
+        end
+      end
+    end
+    return party
+  end)
   mod.log:info("Crystal Legacy: Trainer Changes: %d patches applied, %d refused", stats.applied, stats.failed)
 end

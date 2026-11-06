@@ -8,6 +8,7 @@ Crystal Legacy's wild Pokémon: grass, surfing and the Bug-Catching Contest.
 - 5 water encounter tables
 - Bug-Catching Contest: unchanged in Crystal Legacy
 - Headbutt trees and Rock Smash: unchanged in Crystal Legacy, so nothing to apply
+- Far fewer wild Pokémon flee: only Umbreon and Togetic (plus Raikou and Entei)
 
 Games: crystal. Needs gen1recomp >=0.4.0 <0.5.0.
 

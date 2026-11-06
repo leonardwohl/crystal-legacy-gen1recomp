@@ -2,6 +2,30 @@
 -- Crystal Legacy: Pokémon Changes: Crystal Legacy's base stats, learnsets, TM/HM and egg moves, evolutions and move changes.
 
 local DATA = {
+  critAdd = { "CUT" },
+  evoItems = { "KINGS_ROCK", "METAL_COAT", "DRAGON_SCALE", "UP_GRADE", "BRICK_PIECE" },
+  happiness = {
+    { 10, 6, 4 },
+    { 5, 3, 2 },
+    { 1, 1, 1 },
+    { 9, 9, 9 },
+    { 1, 1, 1 },
+    { -1, -1, -1 },
+    { -5, -5, -10 },
+    { -5, -5, -10 },
+    { 5, 5, 5 },
+    { 5, 5, 5 },
+    { 5, 5, 5 },
+    { 5, 5, 5 },
+    { 7, 7, 7 },
+    { 10, 10, 9 },
+    { -5, -5, -10 },
+    { -10, -10, -15 },
+    { -15, -15, -20 },
+    { 3, 3, 1 },
+    { 10, 6, 4 },
+  },
+  metronomeAdd = { "EXPLOSION", "SELFDESTRUCT" },
   moves = {
     ABSORB = { pp = 25 },
     AEROBLAST = { pp = 10 },
@@ -6361,6 +6385,69 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
   end)
 end
 
+local function copyT(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = copyT(x) end
+  return out
+end
+
+-- Item evolutions: the Legacy items take the evolution stones' effect, which
+-- evolves whichever EVOLVE_ITEM row names the item used.
+local function legacyEvolutionItems(mod, stats)
+  local stone = mod.content.item_effects:get("MOON_STONE")
+  if not stone then
+    mod.log:warn("MOON_STONE effect not found; item evolutions stay unusable")
+    stats.failed = stats.failed + 1
+    return
+  end
+  for _, id in ipairs(DATA.evoItems) do
+    if mod.content.items:get(id) then
+      patch(mod, "items", id, { fieldMenu = "ITEMMENU_PARTY" }, stats)
+      local reg = mod.content.item_effects
+      local ok, err = pcall(reg:get(id) ~= nil and reg.override or reg.register, reg, id, copyT(stone))
+      if ok then stats.applied = stats.applied + 1 else
+        stats.failed = stats.failed + 1
+        mod.log:warn("item effect %s: %s", id, tostring(err))
+      end
+    end
+  end
+end
+
+-- Tables gen1recomp keeps in its engine modules rather than in a registry.
+local function legacyEngineTables(mod, stats)
+  local okH, Happiness = pcall(require, "src.core.gen2.Happiness")
+  if okH and Happiness and Happiness.CHANGES then
+    for i, row in ipairs(DATA.happiness) do Happiness.CHANGES[i] = row end
+  else
+    mod.log:warn("happiness table not found; happiness changes skipped")
+  end
+  local okE, Effects = pcall(require, "src.battle.gen2.Effects")
+  if okE and Effects and Effects.METRONOME_EXCEPTIONS then
+    for _, m in ipairs(DATA.metronomeAdd) do Effects.METRONOME_EXCEPTIONS[m] = true end
+  end
+  -- engine/battle/effect_commands.asm: Legacy adds a Zephyr Badge tier (16).
+  local okB, Battle = pcall(require, "src.battle.gen2.Battle")
+  if okB and Battle and Battle.obedienceLevel and not Battle.__legacyObedience then
+    local vanilla = Battle.obedienceLevel
+    Battle.__legacyObedience = vanilla
+    Battle.obedienceLevel = function(self, ...)
+      local level = vanilla(self, ...)
+      if level == 10 and self.hasBadge and self:hasBadge("badges", "ZEPHYR") then return 16 end
+      return level
+    end
+  end
+  -- data/moves/critical_hit_moves.asm lives in the imported battle rules.
+  mod.events:on("game.ready", function(payload)
+    local game = (payload and payload.game) or mod.game
+    local data = game and game.data
+    local rules = data and data.type_chart and data.type_chart.battleRules
+    if rules and rules.highCriticalMoves then
+      for _, m in ipairs(DATA.critAdd) do rules.highCriticalMoves[m] = true end
+    end
+  end)
+end
+
 return function(mod)
   local stats = { applied = 0, failed = 0 }
 
@@ -6370,5 +6457,7 @@ return function(mod)
   each(DATA.moves, function(id, fields)
     if mod.content.moves:get(id) then patch(mod, "moves", id, fields, stats) end
   end)
+  legacyEvolutionItems(mod, stats)
+  legacyEngineTables(mod, stats)
   mod.log:info("Crystal Legacy: Pokémon Changes: %d patches applied, %d refused", stats.applied, stats.failed)
 end

@@ -82,14 +82,24 @@ def build_pokemon(ctx):
     pk = {sp: {k: v for k, v in p.items() if k != "eggSteps"}
           for sp, p in ctx["pokemon"].items()}
     pk = {sp: p for sp, p in pk.items() if p}
-    data = {"pokemon": pk, "moves": ctx["moves"]}
+    base, leg = ctx["base"], ctx["legacy"]
+    data = {"pokemon": pk, "moves": ctx["moves"],
+            # engine/items/item_effects.asm: these become EvoStoneEffect, and
+            # data/items/attributes.asm makes them usable on a party Pokémon.
+            "evoItems": ["KINGS_ROCK", "METAL_COAT", "DRAGON_SCALE", "UP_GRADE", "BRICK_PIECE"],
+            "happiness": D.parse.happiness_changes(leg),
+            "metronomeAdd": sorted(set(D.parse.metronome_exceptions(leg))
+                                   - set(D.parse.metronome_exceptions(base))),
+            "critAdd": sorted(set(D.parse.crit_moves(leg)) - set(D.parse.crit_moves(base)))}
     body = '''
   each(DATA.pokemon, function(id, fields)
     if mod.content.pokemon:get(id) then patch(mod, "pokemon", id, fields, stats) end
   end)
   each(DATA.moves, function(id, fields)
     if mod.content.moves:get(id) then patch(mod, "moves", id, fields, stats) end
-  end)'''
+  end)
+  legacyEvolutionItems(mod, stats)
+  legacyEngineTables(mod, stats)'''
     fields = {}
     for p in pk.values():
         for k in p:
@@ -103,6 +113,12 @@ def build_pokemon(ctx):
     lines = ["%d Pokémon changed:" % len(pk)]
     lines += ["  - %s: %d species" % (names.get(k, k), n) for k, n in sorted(fields.items())]
     lines.append("%d moves changed (power, accuracy, PP, type or effect)" % len(ctx["moves"]))
+    lines += ["King's Rock, Metal Coat, Dragon Scale, Up-Grade and Brick Piece are used "
+              "from the PACK like evolution stones (Politoed, Slowking, Steelix, Scizor, "
+              "Kingdra, Porygon2, Hitmontop)",
+              "Happiness rises faster (levelling, gym leaders, haircuts)",
+              "Cut has a high critical-hit ratio; Metronome can't call Explosion or Selfdestruct",
+              "The Zephyr Badge makes traded Pokémon up to level 16 obey"]
     return data, body, lines
 
 
@@ -118,24 +134,57 @@ def build_trainers(ctx):
             party["id"] = "%s_%dBADGES" % (cls, badges)
             tiers.append({"badges": badges, "party": party})
         scaling.append({"class": cls, "tiers": tiers})
+    base, leg = ctx["base"], ctx["legacy"]
+    b_items, l_items = D.parse.class_items(base), D.parse.class_items(leg)
+    vanilla_classes = set(b_items)
     data = {"trainers": rows, "extras": extras, "scaling": scaling, "varBadges": 7,
+            # data/trainers/attributes.asm: Legacy takes the healing items
+            # (Hyper Potions, Full Heals...) away from these classes.
+            "classItems": {c: v for c, v in l_items.items()
+                           if c in vanilla_classes and b_items.get(c) != v},
+            # data/trainers/dvs.asm: every trainer Pokémon gets its class's DVs.
+            "classDvs": D.parse.class_dvs(leg),
             "memberIndex": {r["id"]: r["index"] for rs in rows.values() for r in rs}}
     body = '''
   each(DATA.trainers, function(class, rows)
     patch(mod, "trainers", class, { trainers = rows }, stats)
   end)
   for _, S in ipairs(DATA.scaling) do scaleLeader(mod, S, stats) end
-  wrapTrainerExtras(mod, DATA.extras, DATA.memberIndex)'''
+  each(DATA.classItems, function(class, items)
+    if mod.content.trainers:get(class) then
+      -- an empty {} patch is a no-op in gen1recomp's merge, so clear explicitly
+      patch(mod, "trainers", class, { items = next(items) and items or mod.DELETE }, stats)
+    end
+  end)
+  wrapTrainerExtras(mod, DATA.extras, DATA.memberIndex)
+  -- Class DVs replace gen1recomp's flat 9/8/8/8 only, so a team's own custom
+  -- DVs (here, Rematches, Story) always win whichever hook runs first.
+  mod.hooks:wrap("trainer.party", function(nextFn, class, member, party)
+    party = nextFn(class, member, party)
+    local dvs = DATA.classDvs[class]
+    if dvs and type(party) == "table" then
+      for _, mon in ipairs(party) do
+        local d = mon.dvs
+        if d and d.attack == 9 and d.defense == 8 and d.speed == 8 and d.special == 8 then
+          mon.dvs = { attack = dvs.attack, defense = dvs.defense,
+                      speed = dvs.speed, special = dvs.special }
+        end
+      end
+    end
+    return party
+  end)'''
     n = sum(len(r) for r in rows.values())
     return data, body, ["%d trainer classes, %d parties rewritten to Crystal Legacy's teams" % (
         len(rows), n), "Held items and movesets included; custom DVs/stat exp where Legacy sets them",
         "Pryce, Jasmine and Chuck bring a stronger team if you face them with 5 or 6 badges "
-        "(Crystal Legacy lets you take those three gyms in any order)"]
+        "(Crystal Legacy lets you take those three gyms in any order)",
+        "Trainer classes use Crystal Legacy's DVs (stronger gym leaders), and leaders no "
+        "longer carry healing items"]
 
 
 def build_encounters(ctx):
     enc = ctx["encounters"]
-    data = {"encounters": enc}
+    data = {"encounters": enc, "flee": D.parse.flee_lists(ctx["legacy"])}
     body = '''
   each(DATA.encounters, function(kind, value)
     if kind == "bugContest" then
@@ -148,12 +197,24 @@ def build_encounters(ctx):
     else
       patch(mod, "encounters", kind, value, stats)
     end
-  end)'''
+  end)
+  -- data/wild/flee_mons.asm: far fewer wild Pokémon run away.
+  local okR, Roamers = pcall(require, "src.core.gen2.Roamers")
+  if okR and Roamers and Roamers.SOMETIMES_FLEE and Roamers.OFTEN_FLEE then
+    for _, t in ipairs({ { Roamers.SOMETIMES_FLEE, DATA.flee.sometimes },
+                         { Roamers.OFTEN_FLEE, DATA.flee.often } }) do
+      for k in pairs(t[1]) do t[1][k] = nil end
+      for _, sp in ipairs(t[2]) do t[1][sp] = true end
+    end
+  else
+    mod.log:warn("flee tables not found; flee changes skipped")
+  end'''
     return data, body, [
         "%d grass encounter tables (morning, day and night)" % len(enc.get("grass", {})),
         "%d water encounter tables" % len(enc.get("water", {})),
         "Bug-Catching Contest: %s" % ("changed" if "bugContest" in enc else "unchanged in Crystal Legacy"),
-        "Headbutt trees and Rock Smash: unchanged in Crystal Legacy, so nothing to apply"]
+        "Headbutt trees and Rock Smash: unchanged in Crystal Legacy, so nothing to apply",
+        "Far fewer wild Pokémon flee: only Umbreon and Togetic (plus Raikou and Entei)"]
 
 
 def build_fast_eggs(ctx):
@@ -659,9 +720,75 @@ def build_rematches(ctx):
         "Red's rematch is part of Story Changes (it follows Crystal Legacy's Mewtwo event)"]
 
 
+POKEMON_RT = r"""
+local function copyT(v)
+  if type(v) ~= "table" then return v end
+  local out = {}
+  for k, x in pairs(v) do out[k] = copyT(x) end
+  return out
+end
+
+-- Item evolutions: the Legacy items take the evolution stones' effect, which
+-- evolves whichever EVOLVE_ITEM row names the item used.
+local function legacyEvolutionItems(mod, stats)
+  local stone = mod.content.item_effects:get("MOON_STONE")
+  if not stone then
+    mod.log:warn("MOON_STONE effect not found; item evolutions stay unusable")
+    stats.failed = stats.failed + 1
+    return
+  end
+  for _, id in ipairs(DATA.evoItems) do
+    if mod.content.items:get(id) then
+      patch(mod, "items", id, { fieldMenu = "ITEMMENU_PARTY" }, stats)
+      local reg = mod.content.item_effects
+      local ok, err = pcall(reg:get(id) ~= nil and reg.override or reg.register, reg, id, copyT(stone))
+      if ok then stats.applied = stats.applied + 1 else
+        stats.failed = stats.failed + 1
+        mod.log:warn("item effect %s: %s", id, tostring(err))
+      end
+    end
+  end
+end
+
+-- Tables gen1recomp keeps in its engine modules rather than in a registry.
+local function legacyEngineTables(mod, stats)
+  local okH, Happiness = pcall(require, "src.core.gen2.Happiness")
+  if okH and Happiness and Happiness.CHANGES then
+    for i, row in ipairs(DATA.happiness) do Happiness.CHANGES[i] = row end
+  else
+    mod.log:warn("happiness table not found; happiness changes skipped")
+  end
+  local okE, Effects = pcall(require, "src.battle.gen2.Effects")
+  if okE and Effects and Effects.METRONOME_EXCEPTIONS then
+    for _, m in ipairs(DATA.metronomeAdd) do Effects.METRONOME_EXCEPTIONS[m] = true end
+  end
+  -- engine/battle/effect_commands.asm: Legacy adds a Zephyr Badge tier (16).
+  local okB, Battle = pcall(require, "src.battle.gen2.Battle")
+  if okB and Battle and Battle.obedienceLevel and not Battle.__legacyObedience then
+    local vanilla = Battle.obedienceLevel
+    Battle.__legacyObedience = vanilla
+    Battle.obedienceLevel = function(self, ...)
+      local level = vanilla(self, ...)
+      if level == 10 and self.hasBadge and self:hasBadge("badges", "ZEPHYR") then return 16 end
+      return level
+    end
+  end
+  -- data/moves/critical_hit_moves.asm lives in the imported battle rules.
+  mod.events:on("game.ready", function(payload)
+    local game = (payload and payload.game) or mod.game
+    local data = game and game.data
+    local rules = data and data.type_chart and data.type_chart.battleRules
+    if rules and rules.highCriticalMoves then
+      for _, m in ipairs(DATA.critAdd) do rules.highCriticalMoves[m] = true end
+    end
+  end)
+end
+"""
+
 MODS = [
     {"id": "crystal_legacy_pokemon", "name": "Crystal Legacy: Pokémon Changes",
      "category": "BALANCE", "games": ["crystal"], "build": build_pokemon,
+     "runtime": POKEMON_RT, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's base stats, learnsets, TM/HM and egg moves, "
                 "evolutions and move changes."},
     {"id": "crystal_legacy_trainers", "name": "Crystal Legacy: Trainer Changes",
@@ -670,6 +797,7 @@ MODS = [
      "summary": "Every trainer, gym leader and Elite Four team rebuilt as in Crystal Legacy."},
     {"id": "crystal_legacy_encounters", "name": "Crystal Legacy: Encounter Changes",
      "category": "CONTENT", "games": ["crystal"], "build": build_encounters,
+     "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's wild Pokémon: grass, surfing and the Bug-Catching Contest."},
     {"id": "fast_eggs", "name": "Fast Eggs", "category": "QOL", "games": ["gen2"],
      "build": build_fast_eggs,

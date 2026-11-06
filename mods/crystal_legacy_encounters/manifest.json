@@ -14,7 +14,9 @@
   "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
-  "permissions": [],
+  "permissions": [
+    "engine_internals"
+  ],
   "description": "Crystal Legacy's wild Pokémon: grass, surfing and the Bug-Catching Contest. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

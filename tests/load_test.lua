@@ -107,6 +107,10 @@ end
 for _, w in ipairs(refused) do print("refused: " .. w) end
 T.eq(#refused, 0, label .. ": no patch refused")
 
+-- The handshake a running game sends once its data is merged; the engine
+-- ports in Pokémon / Story Changes finish their work on it.
+Runtime.emit("game.ready", { game = { data = data } })
+
 -- Spot checks per mod, against values read straight from Crystal Legacy's
 -- source. Each runs only when its mod is in this load.
 local p, enc = data.pokemon, data.gen2Encounters
@@ -117,6 +121,37 @@ local CHECKS = {
       T.eq(p.CHIKORITA.eggSteps, 20, "pokemon: leaves egg steps to Fast Eggs")
     end
     T.eq(data.moves.SHADOW_BALL ~= nil, true, "pokemon: moves present")
+    -- engine ports
+    T.eq(data.items.KINGS_ROCK.fieldMenu, "ITEMMENU_PARTY", "pokemon: King's Rock used on a party mon")
+    local effects = loader.content and loader.content.item_effects
+    if effects and effects:get("MOON_STONE") then
+      T.eq(effects:get("KINGS_ROCK") ~= nil, true, "pokemon: King's Rock has the stone effect")
+      T.eq(effects:get("UP_GRADE") ~= nil, true, "pokemon: Up-Grade has the stone effect")
+      local ItemEffects = require("src.core.gen2.ItemEffects")
+      T.eq(ItemEffects.partyAction("KINGS_ROCK", data), "stone", "pokemon: Pack runs King's Rock as a stone")
+      local entry = require("src.core.gen2.Evolution").checkMon(data,
+        { species = "SLOWPOKE", level = 20 }, { force = true, item = "KINGS_ROCK" })
+      T.eq(entry and entry.into, "SLOWKING", "pokemon: King's Rock evolves Slowpoke into Slowking")
+    end
+    local Happiness = require("src.core.gen2.Happiness")
+    T.eq(Happiness.CHANGES[1][1], 10, "pokemon: levelling happiness doubled")
+    T.eq(Happiness.CHANGES[4][1], 9, "pokemon: gym leader happiness +9")
+    local Effects = require("src.battle.gen2.Effects")
+    T.eq(Effects.METRONOME_EXCEPTIONS.EXPLOSION, true, "pokemon: Metronome skips Explosion")
+    T.eq(Effects.METRONOME_EXCEPTIONS.SELFDESTRUCT, true, "pokemon: Metronome skips Selfdestruct")
+    local Battle = require("src.battle.gen2.Battle")
+    local function obey(badges)
+      local fake = { hasBadge = function(_, _, b) return badges[b] == true end }
+      return Battle.obedienceLevel(fake)
+    end
+    T.eq(obey({}), 10, "pokemon: no badges -> obedience 10")
+    T.eq(obey({ ZEPHYR = true }), 16, "pokemon: Zephyr Badge -> obedience 16")
+    T.eq(obey({ ZEPHYR = true, HIVE = true }), 30, "pokemon: Hive Badge still 30")
+    local rules = data.type_chart.battleRules
+    if rules and rules.highCriticalMoves then
+      T.eq(rules.highCriticalMoves.CUT, true, "pokemon: Cut has high crit ratio")
+      T.eq(rules.highCriticalMoves.SLASH, true, "pokemon: Slash still high crit")
+    end
   end,
   fast_eggs = function()
     T.eq(p.CHIKORITA.eggSteps, 5, "fast eggs: Chikorita 20 -> 5")
@@ -142,6 +177,17 @@ local CHECKS = {
     local out = Runtime.call("trainer.party", function(_, _, pt) return pt end,
       "CAL", "CAL3", { {} })
     T.eq(out[1].statExp and out[1].statExp.hp, 0xFE01, "trainers: Smith's Raikou stat exp")
+    T.eq(trainers.PRYCE.items == nil or #trainers.PRYCE.items == 0, true,
+      "trainers: Pryce carries no healing items")
+    T.eq(trainers.BLAINE.items == nil or #trainers.BLAINE.items == 0, true,
+      "trainers: Blaine carries no healing items")
+    local function vanillaDvs() return { attack = 9, defense = 8, speed = 8, special = 8 } end
+    local brock = Runtime.call("trainer.party", function(_, _, pt) return pt end,
+      "BROCK", 1, { { dvs = vanillaDvs() } })
+    T.eq(brock[1].dvs.defense, 14, "trainers: Brock's class DVs (defense 14)")
+    local custom = Runtime.call("trainer.party", function(_, _, pt) return pt end,
+      "BROCK", 1, { { dvs = { attack = 1, defense = 2, speed = 3, special = 4 } } })
+    T.eq(custom[1].dvs.defense, 2, "trainers: a team's own DVs beat class DVs")
   end,
   crystal_legacy_trainers_scaling = function()
     local Vm = require("src.script.gen2.Vm")
@@ -168,6 +214,11 @@ local CHECKS = {
   crystal_legacy_encounters = function()
     T.eq(enc.grass.SPROUT_TOWER_2F.rates.MORN, 5, "encounters: rates stay raw bytes")
     T.eq(#enc.grass.SPROUT_TOWER_2F.slots.NITE, 7, "encounters: 7 night slots")
+    local Roamers = require("src.core.gen2.Roamers")
+    T.eq(Roamers.SOMETIMES_FLEE.EEVEE, nil, "encounters: Eevee no longer flees")
+    T.eq(Roamers.SOMETIMES_FLEE.UMBREON, true, "encounters: Umbreon still flees")
+    T.eq(Roamers.OFTEN_FLEE.ARTICUNO, nil, "encounters: Articuno no longer flees")
+    T.eq(Roamers.OFTEN_FLEE.TOGETIC, true, "encounters: Togetic flees often")
   end,
   legacy_hard_mode = function()
     local Mon = require("src.battle.gen2.Mon")
@@ -247,6 +298,15 @@ local CHECKS = {
     T.eq(lb and lb.id, "CHAMPION_REMATCH", "rematches: Lance rematch member id")
   end,
   crystal_legacy_story = function()
+    local tables = data.gen2EventTables
+    if tables and tables.trades then
+      local t = tables.trades
+      T.eq(t[2].get, "ONIX", "story: Kyle trades Onix")
+      T.eq(t[2].item, "HARD_STONE", "story: Onix holds Hard Stone")
+      T.eq(t[2].getIndex, 95, "story: trade dex index follows the species")
+      T.eq(t[4].get, "MR__MIME", "story: Doris trades Mr. Mime")
+      T.eq(t[1].get, "MACHOP", "story: Mike's trade unchanged")
+    end
     -- Every key a story row or map event points at must exist afterwards.
     local missing = {}
     local function need(kind, key)
