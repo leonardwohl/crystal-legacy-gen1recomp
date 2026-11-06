@@ -524,6 +524,16 @@ local CHECKS = {
     menu.qtyItem, menu.qty = menu.entries[1], 1
     menu:completePurchase(1000)
     T.eq(save.player.money, 49000, "shops: purchase charged to the live save")
+    -- The rooftop clerk (MARTTYPE_ROOFTOP) gets the sale list at sale prices.
+    local roof = data.screens.Gen2MartMenu.new(game, { martType = 4, martId = 0,
+      save = save, items = data.items })
+    T.eq(roof.entries[2].id, "GREAT_BALL", "shops: rooftop sale list 1")
+    T.eq(roof.entries[2].price, 350, "shops: rooftop Great Ball at Legacy's 350")
+    save.hallOfFame = { count = 1 }
+    roof = data.screens.Gen2MartMenu.new(game, { martType = 4, martId = 0,
+      save = save, items = data.items })
+    T.eq(roof.entries[1].id, "HYPER_POTION", "shops: rooftop list 2 after the Hall of Fame")
+    T.eq(roof.entries[1].price, 750, "shops: rooftop Hyper Potion at 750")
   end,
 }
 for _, id in ipairs(ids) do

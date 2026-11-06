@@ -466,3 +466,15 @@ def class_items(root):
         if op == "db" and len(a) == 2 and all(x.isupper() or x.startswith("NO_") for x in a):
             rows.append([x for x in a if x != "NO_ITEM"])
     return dict(zip(classes, rows))
+
+
+def rooftop_sale(root):
+    """data/items/rooftop_sale.asm: [[{item, price}, ...] per list] (1 before HoF, 2 after)."""
+    lists, cur = [], None
+    for op, a in statements(p(root, "data/items/rooftop_sale.asm")):
+        if op == "label":
+            cur = []
+            lists.append(cur)
+        elif op == "dbw" and cur is not None:
+            cur.append({"item": a[0], "price": evaluate(a[1])})
+    return lists

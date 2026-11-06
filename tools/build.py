@@ -275,6 +275,28 @@ local function wrapMartScreen(mod, stats)
   end
   mod.content.screens:register("Gen2MartMenu", {
     new = function(game, opts, ...)
+      -- MARTTYPE_ROOFTOP (4): gen1recomp's mart screen knows types 0-3 and
+      -- would open the rooftop clerk as a plain mart 0. Serve RooftopSale
+      -- instead: list 1, or list 2 once the player is in the Hall of Fame,
+      -- each item at the sale's own price.
+      local kind = opts and opts.martType
+      if (kind == 4 or kind == "ROOFTOP") and DATA.rooftop[1] then
+        local o = {}
+        for k, v in pairs(opts) do o[k] = v end
+        o.martType, o.martId = 0, 0
+        local menu = MartMenu.new(game, o, ...)
+        local okH, HallOfFame = pcall(require, "src.core.gen2.HallOfFame")
+        local entered = okH and HallOfFame.hasEntered(menu.save)
+        local list = DATA.rooftop[entered and 2 or 1] or DATA.rooftop[1]
+        local entries = {}
+        for _, row in ipairs(list) do
+          local def = menu.items and menu.items[row.item]
+          entries[#entries + 1] = { id = row.item, price = row.price,
+            name = (def and def.name) or row.item }
+        end
+        menu.entries = entries
+        return menu
+      end
       local list = opts and DATA.customMarts[opts.martId]
       if list then
         -- Shallow: opts.save must stay the live save, or purchases would be
@@ -371,6 +393,7 @@ def build_shops(ctx):
     cid = {m: 1000 + i for i, m in enumerate(new)}
     data = {
         "marts": ctx["marts"], "items": ctx["items"], "customMarts": custom,
+        "rooftop": D.parse.rooftop_sale(ctx["legacy"]),
         "varBadges": 7,
         # Celadon Dept. Store: Legacy's clerks switch to these TM lists at 16 badges.
         "upgrades": [
@@ -403,7 +426,9 @@ def build_shops(ctx):
                         "%d item prices changed" % len(ctx["items"]),
                         "Celadon Dept. Store 3F and 5F clerks sell Legacy's extra TMs "
                         "once you have all 16 badges",
-                        "New berry clerk in the Goldenrod Flower Shop (more berries from 7 badges)"]
+                        "New berry clerk in the Goldenrod Flower Shop (more berries from 7 badges)",
+                        "Goldenrod rooftop sale: Legacy's cheaper prices, and the sale items "
+                        "themselves (gen1recomp otherwise opens a plain mart there)"]
 
 # ----------------------------------------------------------------- rematches
 SCRIPT_HELPERS = r"""

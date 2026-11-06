@@ -223,6 +223,22 @@ local DATA = {
       "FLOWER_MAIL",
     },
   },
+  rooftop = {
+    {
+      { item = "POKE_BALL", price = 150 },
+      { item = "GREAT_BALL", price = 350 },
+      { item = "SUPER_POTION", price = 350 },
+      { item = "FULL_HEAL", price = 450 },
+      { item = "REVIVE", price = 1200 },
+    },
+    {
+      { item = "HYPER_POTION", price = 750 },
+      { item = "FULL_RESTORE", price = 2000 },
+      { item = "FULL_HEAL", price = 450 },
+      { item = "ULTRA_BALL", price = 750 },
+      { item = "PROTEIN", price = 7800 },
+    },
+  },
   upgrades = {
     { badges = 16, custom = 1000, map = "CELADON_DEPT_STORE_3F", vanillaMart = 25 },
     { badges = 16, custom = 1001, map = "CELADON_DEPT_STORE_5F", vanillaMart = 27 },
@@ -314,6 +330,28 @@ local function wrapMartScreen(mod, stats)
   end
   mod.content.screens:register("Gen2MartMenu", {
     new = function(game, opts, ...)
+      -- MARTTYPE_ROOFTOP (4): gen1recomp's mart screen knows types 0-3 and
+      -- would open the rooftop clerk as a plain mart 0. Serve RooftopSale
+      -- instead: list 1, or list 2 once the player is in the Hall of Fame,
+      -- each item at the sale's own price.
+      local kind = opts and opts.martType
+      if (kind == 4 or kind == "ROOFTOP") and DATA.rooftop[1] then
+        local o = {}
+        for k, v in pairs(opts) do o[k] = v end
+        o.martType, o.martId = 0, 0
+        local menu = MartMenu.new(game, o, ...)
+        local okH, HallOfFame = pcall(require, "src.core.gen2.HallOfFame")
+        local entered = okH and HallOfFame.hasEntered(menu.save)
+        local list = DATA.rooftop[entered and 2 or 1] or DATA.rooftop[1]
+        local entries = {}
+        for _, row in ipairs(list) do
+          local def = menu.items and menu.items[row.item]
+          entries[#entries + 1] = { id = row.item, price = row.price,
+            name = (def and def.name) or row.item }
+        end
+        menu.entries = entries
+        return menu
+      end
       local list = opts and DATA.customMarts[opts.martId]
       if list then
         -- Shallow: opts.save must stay the live save, or purchases would be
