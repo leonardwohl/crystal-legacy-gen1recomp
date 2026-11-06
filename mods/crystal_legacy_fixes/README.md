@@ -1,0 +1,16 @@
+# Crystal Legacy: Bug Fixes
+
+The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses and the trainer AI.
+
+## What it changes
+
+- Poké Balls: burned, poisoned and paralysed Pokémon are easier to catch (vanilla only counted sleep and freeze)
+- Fast Ball works on every Pokémon that tends to run, Moon Ball on Moon Stone evolvers, and Love Ball on the opposite gender
+- The catch formula's high-HP rounding quirk is kept, as in Crystal Legacy
+- Trainer AI: Mean Look is favoured when *your* Pokémon is badly poisoned (vanilla checked its own)
+- Trainer AI: Full Heal and Full Restore also end Nightmare
+- Already correct in gen1recomp, so nothing to change: Counter / Mirror Coat after a non-damaging turn, PP Ups in the 'has PP' check, a Transformed Pokémon caught as Ditto, and Full Heal leaving the AI confused
+
+Games: crystal. Needs gen1recomp >=0.4.0 <0.5.0.
+
+Generated from [Pokémon Crystal Legacy](https://github.com/cRz-Shadows/Pokemon_Crystal_Legacy) by `tools/build.py`. All design credit to the Crystal Legacy team. See the [repository README](../../README.md).

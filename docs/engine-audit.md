@@ -37,23 +37,33 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 
 ## Vanilla bug fixes
 
-Crystal Legacy fixes many of the bugs pret documents. Whether each needs a
-port depends on whether gen1recomp reproduces the bug; to be checked one by one.
+Crystal Legacy fixes many of the bugs pret documents. gen1recomp reproduces
+some on purpose and simply doesn't have others, so each was checked against
+its source. Ported fixes live in **Crystal Legacy: Bug Fixes**.
+
+✅ ported · ➖ gen1recomp already behaves correctly · 🔜 still to check
 
 | Fix | Legacy source | Status |
 |---|---|---|
-| Both Pokémon fainting at once is handled for both | `engine/battle/core.asm` | 🔜 check |
-| "Has PP" check masks PP Ups (`and PP_MASK`) | `core.asm` | 🔜 check |
+| Poké Balls: burn / poison / paralysis give a catch bonus | `engine/items/item_effects.asm` | ✅ |
+| Fast Ball (all flee-prone mons), Moon Ball (Moon Stone), Love Ball (opposite gender) | `item_effects.asm` | ✅ via gen1recomp's own `fixBugs` arms; the high-HP rounding quirk Legacy keeps is left alone |
+| Heavy Ball reads the wrong dex bank for three species | `item_effects.asm` | ➖ gen1recomp reads weights straight from the Pokédex |
+| A Transformed wild Pokémon is caught as Ditto | `item_effects.asm` | ➖ gen1recomp restores the species it was sent out as |
+| Held-item catch bonus never applied | `item_effects.asm` | 🔜 check whether any item carries it |
+| AI: Mean Look checks the AI's own toxic instead of the player's | `engine/battle/ai/scoring.asm` | ✅ |
+| AI: Full Heal / Full Restore leave Nightmare | `engine/battle/ai/items.asm` | ✅ |
+| AI: Full Heal / Full Restore leave confusion | `ai/items.asm` | ➖ gen1recomp already clears it |
+| Counter / Mirror Coat answer stale damage after a non-damaging turn | `move_effects/{counter,mirror_coat}.asm` | ➖ gen1recomp only counts damage taken this turn |
+| "Has PP" check confused by PP Ups | `engine/battle/core.asm` | ➖ gen1recomp stores PP and PP Ups separately |
+| Redundant Fly / Dig check after the hit check (Lock-On, Mind Reader) | `effect_commands.asm` | 🔜 no such check found by name in gen1recomp; needs a behaviour test |
+| Day-Care resets exp to the level's minimum | `engine/pokemon/move_mon.asm` | ✅ in Quality of Life |
+| Magikarp length thresholds | `engine/events/magikarp.asm` | 🔜 gen1recomp keeps the bug (`Specials.lua`) |
+| Both Pokémon fainting at once | `engine/battle/core.asm` | 🔜 check |
 | Wild Pokémon's status lowers its stats on send-out | `core.asm` | 🔜 check |
-| Magikarp length thresholds | `core.asm`, `engine/events/magikarp.asm` | 🔜 check |
 | Confusion self-damage ignores held-item boosts | `effect_commands.asm` | 🔜 check |
 | Boosted stats capped at 999 (Light Ball etc.) | `effect_commands.asm` | 🔜 check |
-| Psywave never deals 0, range 1-1.5x level | `effect_commands.asm` | 🔜 check |
-| Status moves fail correctly on already-statused targets | `effect_commands.asm` | 🔜 check |
-| Beat Up multi-hit handling | `effect_commands.asm` | 🔜 check |
-| Rage / AncientPower effect order | `data/moves/effects.asm` | 🔜 check |
-| AI type matchup, Leech Seed / Encore checks, X items clear confusion / Nightmare | `engine/battle/ai/*.asm` | 🔜 check |
-| Poké Balls: status bonus, held catch chance, Transform-as-Ditto, Heavy / Moon / Love Ball | `engine/items/item_effects.asm` | 🔜 check |
+| Psywave never deals 0 | `effect_commands.asm` | 🔜 check |
+| Beat Up, Rage / AncientPower effect order | `effect_commands.asm`, `data/moves/effects.asm` | 🔜 check |
 | Level 1 has 0 exp (Medium-Slow underflow) | `engine/pokemon/experience.asm` | 🔜 check |
 | Breeding uses the party mon's DVs | `engine/pokemon/breeding.asm` | 🔜 check |
 | Can't surf into an object; edge-warp bump sound | `engine/events/overworld.asm`, `player_movement.asm` | 🔜 check |

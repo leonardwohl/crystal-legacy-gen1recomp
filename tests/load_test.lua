@@ -116,6 +116,34 @@ Runtime.emit("game.ready", { game = { data = data } })
 local p, enc = data.pokemon, data.gen2Encounters
 local trainers = data.gen2Trainers.classes
 local CHECKS = {
+  crystal_legacy_fixes = function()
+    local Catching = require("src.battle.gen2.Catching")
+    T.eq(Catching.statusBonus("burn", {}), 5, "fixes: burn gives a catch bonus")
+    T.eq(Catching.statusBonus("sleep", {}), 10, "fixes: sleep bonus unchanged")
+    local love = { catchRate = 45, maxHp = 30, hp = 30, ball = "LOVE_BALL",
+      species = "PIDGEY", playerSpecies = "PIDGEY", gender = "female", playerGender = "male" }
+    local plain = { catchRate = 45, maxHp = 30, hp = 30, ball = "POKE_BALL" }
+    T.eq(Catching.rate(love) > Catching.rate(plain), true, "fixes: Love Ball boosts opposite genders")
+    love.gender = "male"
+    T.eq(Catching.rate(love), Catching.rate(plain), "fixes: Love Ball ignores same gender")
+    -- Legacy keeps the high-HP rounding quirk: fixBugs must not reach it.
+    local big = { catchRate = 45, maxHp = 400, hp = 400, ball = "POKE_BALL" }
+    local fixedBig = { catchRate = 45, maxHp = 400, hp = 400, ball = "POKE_BALL", fixBugs = true }
+    T.eq(Catching.rate(big) ~= Catching.rate(fixedBig), true, "fixes: HP rounding quirk kept")
+    local Ai = require("src.battle.gen2.Ai")
+    local never = { random = function() return 99 end }
+    local base = { enemyHp = 100, enemyMaxHp = 100 }
+    T.eq(Ai.SMART.EFFECT_MEAN_LOOK(never, setmetatable({ enemyToxic = true }, { __index = base })), 1,
+      "fixes: AI ignores its own poison for Mean Look")
+    T.eq(Ai.SMART.EFFECT_MEAN_LOOK(never, setmetatable({ playerToxic = true }, { __index = base })), -3,
+      "fixes: AI favours Mean Look on a badly poisoned player")
+    local Battle = require("src.battle.gen2.Battle")
+    local vol = { nightmare = true, confuseCount = 2 }
+    local fake = { enemy = { status = "sleep" }, trainer = { items = { "FULL_HEAL" } },
+      volatile = function() return vol end, itemDef = function() return nil end, emit = function() end }
+    Battle.enemyUseItem(fake, "FULL_HEAL")
+    T.eq(vol.nightmare, nil, "fixes: AI Full Heal ends Nightmare")
+  end,
   crystal_legacy_qol = function()
     -- Running: B halves the step on foot and on water, never on the bike.
     local holdB = { isDown = function(_, b) return b == "b" end }

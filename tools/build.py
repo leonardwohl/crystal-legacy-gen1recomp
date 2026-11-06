@@ -1011,6 +1011,93 @@ end
 """
 
 
+# ------------------------------------------------------------------ bug fixes
+def build_fixes(ctx):
+    body = '''
+  fixCatching(mod)
+  fixAi(mod)'''
+    lines = [
+        "Poké Balls: burned, poisoned and paralysed Pokémon are easier to catch (vanilla "
+        "only counted sleep and freeze)",
+        "Fast Ball works on every Pokémon that tends to run, Moon Ball on Moon Stone "
+        "evolvers, and Love Ball on the opposite gender",
+        "The catch formula's high-HP rounding quirk is kept, as in Crystal Legacy",
+        "Trainer AI: Mean Look is favoured when *your* Pokémon is badly poisoned (vanilla "
+        "checked its own)",
+        "Trainer AI: Full Heal and Full Restore also end Nightmare",
+        "Already correct in gen1recomp, so nothing to change: Counter / Mirror Coat after a "
+        "non-damaging turn, PP Ups in the 'has PP' check, a Transformed Pokémon caught "
+        "as Ditto, and Full Heal leaving the AI confused",
+    ]
+    return {}, body, lines
+
+
+FIXES_RUNTIME = r"""
+local function engine(mod, name, what)
+  local ok, m = pcall(require, name)
+  if ok and type(m) == "table" then return m end
+  mod.log:warn("%s not found; %s left as vanilla", name, what)
+end
+
+-- A view of a table with a few keys replaced, leaving the original alone.
+local function with(t, over)
+  return setmetatable(over, { __index = t })
+end
+
+-- engine/items/item_effects.asm PokeBallEffect, as Crystal Legacy fixes it.
+-- gen1recomp keeps the cart's bugs and can flip them with `fixBugs`; that
+-- flag also fixes the high-HP rounding, which Legacy keeps, so it is passed
+-- only to the status bonus and the ball multipliers.
+local function fixCatching(mod)
+  local Catching = engine(mod, "src.battle.gen2.Catching", "catching")
+  if not (Catching and Catching.statusBonus and Catching.recordFor) then return end
+  local statusBonus, recordFor = Catching.statusBonus, Catching.recordFor
+  Catching.statusBonus = function(status, opts, ...)
+    return statusBonus(status, with(opts or {}, { fixBugs = true }), ...)
+  end
+  local fixed = setmetatable({}, { __mode = "k" })
+  Catching.recordFor = function(ball, opts, ...)
+    local record = recordFor(ball, opts, ...)
+    if type(record) ~= "table" or type(record.specialty) ~= "function" then return record end
+    local out = fixed[record]
+    if not out then
+      local specialty = record.specialty
+      out = with(record, { specialty = function(rate, o, ...)
+        return specialty(rate, with(o or {}, { fixBugs = true }), ...)
+      end })
+      fixed[record] = out
+    end
+    return out
+  end
+end
+
+local function fixAi(mod)
+  -- engine/battle/ai/scoring.asm AI_Smart_MeanLook: test the PLAYER's toxic.
+  local Ai = engine(mod, "src.battle.gen2.Ai", "AI scoring")
+  local smart = Ai and Ai.SMART
+  if smart and type(smart.EFFECT_MEAN_LOOK) == "function" then
+    local meanLook = smart.EFFECT_MEAN_LOOK
+    smart.EFFECT_MEAN_LOOK = function(ctx, st, ...)
+      return meanLook(ctx, with(st or {}, { enemyToxic = (st and st.playerToxic) or false }), ...)
+    end
+  end
+  -- engine/battle/ai/items.asm AI_HealStatus: also clear SUBSTATUS_NIGHTMARE.
+  local Battle = engine(mod, "src.battle.gen2.Battle", "AI items")
+  if Battle and Battle.enemyUseItem then
+    local enemyUseItem = Battle.enemyUseItem
+    Battle.enemyUseItem = function(self, item, ...)
+      local used = enemyUseItem(self, item, ...)
+      if used and (item == "FULL_HEAL" or item == "FULL_RESTORE") and self.volatile then
+        local v = self:volatile(self.enemy)
+        if v then v.nightmare = nil end
+      end
+      return used
+    end
+  end
+end
+"""
+
+
 POKEMON_RT = r"""
 local function copyT(v)
   if type(v) ~= "table" then return v end
@@ -1105,6 +1192,11 @@ MODS = [
      "runtime": REMATCH_RUNTIME, "optional_dependencies": ["crystal_legacy_trainers"],
      "summary": "Rematch every gym leader after the Elite Four, and the Elite Four "
                 "themselves once you have all 16 badges."},
+    {"id": "crystal_legacy_fixes", "name": "Crystal Legacy: Bug Fixes",
+     "category": "BALANCE", "games": ["crystal"], "build": build_fixes,
+     "runtime": FIXES_RUNTIME, "permissions": ["engine_internals"],
+     "summary": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still "
+                "reproduces: Poké Ball catch bonuses and the trainer AI."},
     {"id": "crystal_legacy_qol", "name": "Crystal Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
      "runtime": QOL_RUNTIME, "permissions": ["engine_internals"],

@@ -1,0 +1,22 @@
+{
+  "id": "crystal_legacy_fixes",
+  "name": "Crystal Legacy: Bug Fixes",
+  "version": "0.2.1",
+  "api": 2,
+  "games": [
+    "crystal"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "BALANCE",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses and the trainer AI. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}
