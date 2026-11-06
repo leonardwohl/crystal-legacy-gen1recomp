@@ -27,7 +27,7 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 | Fewer wild Pokémon flee (Magnemite, Eevee, Dratini, the birds…) | `data/wild/flee_mons.asm` | ✅ only Umbreon and Togetic (plus Raikou, Entei) | Encounter Changes |
 | In-game trades: different Pokémon and held items | `data/events/npc_trades.asm` | ✅ Onix, Voltorb, Mr. Mime, Haunter trades | Story Changes |
 | Goldenrod rooftop sale prices | `data/items/rooftop_sale.asm` | ✅ gen1recomp opened the rooftop clerk as a plain mart 0 (its mart screen knows types 0–3); the wrapper serves the sale lists at Legacy's prices. Buy/Sell menu shown where the cart goes straight to Buy | Shop Changes |
-| Running (hold B), faster surfing (hold B) | `engine/overworld/player_movement.asm` | ✅ (no running sprite) | Quality of Life |
+| Running (hold B), faster surfing (hold B) | `engine/overworld/player_movement.asm` | ✅ including Legacy's running sprite | Quality of Life |
 | "Use another Repel?" when one wears off | `engine/events/repel.asm` | ✅ | Quality of Life |
 | Pack: START sorts items | `engine/items/{pack,switch_items}.asm` | ✅ sorts silently (no "Sorting items!" box) | Quality of Life |
 | Pokémon Center nurse skips her speech after the first visit | `engine/events/std_scripts.asm` | ✅ | Quality of Life |

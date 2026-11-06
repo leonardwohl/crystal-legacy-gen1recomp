@@ -3,6 +3,28 @@
 
 local DATA = {
   nurseScript = "2f:409c",
+  runSprites = {
+    {
+      frames = 6,
+      id = "SPRITE_CHRIS_RUN",
+      image = "assets/sprites/chris_run.png",
+      palette = "PAL_OW_RED",
+      paletteId = 0,
+      source = "Crystal Legacy",
+      spriteType = "WALKING_SPRITE",
+      walker = true,
+    },
+    {
+      frames = 6,
+      id = "SPRITE_KRIS_RUN",
+      image = "assets/sprites/kris_run.png",
+      palette = "PAL_OW_BLUE",
+      paletteId = 1,
+      source = "Crystal Legacy",
+      spriteType = "WALKING_SPRITE",
+      walker = true,
+    },
+  },
   sortOrder = {
     "POKE_BALL",
     "GREAT_BALL",
@@ -271,6 +293,58 @@ local function qolRunning(mod)
   end)
 end
 
+-- data/sprites/player_sprites.asm: Legacy's PLAYER_RUN row. Only the sheet
+-- is swapped, never wPlayerState, so everything that checks for the walking
+-- state (bike, Surf, fishing) still sees it.
+local RUN_SPRITE = { male = "SPRITE_CHRIS_RUN", female = "SPRITE_KRIS_RUN" }
+
+local function qolRunSprite(mod, stats)
+  for _, rec in ipairs(DATA.runSprites) do
+    local r = {}
+    for k, v in pairs(rec) do r[k] = v end
+    r.image = mod.path .. "/" .. rec.image
+    local ok, err = pcall(mod.content.sprites.register, mod.content.sprites, rec.id, r)
+    if ok then stats.applied = stats.applied + 1 else
+      stats.failed = stats.failed + 1
+      mod.log:warn("sprite %s: %s", rec.id, tostring(err))
+    end
+  end
+  local World = engine(mod, "src.world.gen2.World", "the running sprite")
+  local FieldMoves = engine(mod, "src.world.gen2.FieldMoves", "the running sprite")
+  if not (World and World.stepBody and World.applyPlayerState and FieldMoves) then return end
+  local function tick(self)
+    local p = self.player
+    if p then
+      local input = self.game and self.game.input
+      local want = OPT("running") and p.moving
+        and self.playerState == FieldMoves.PLAYER_NORMAL
+        and input and input.isDown and input:isDown("b") or false
+      local wearing = self.__qolRunning == p
+      if want and not wearing then
+        local gender = self.playerGender and self:playerGender()
+        local def = self.sprites
+          and self.sprites[RUN_SPRITE[FieldMoves.isFemale(gender) and "female" or "male"]]
+        if def then
+          p:setSprite(def)
+          if self.applySpritePalette then self:applySpritePalette(p) end
+          self.__qolRunning = p
+        end
+      elseif not want and wearing then
+        self.__qolRunning = nil
+        -- Back to whatever the current state wears (walking, bike, Surf).
+        self:applyPlayerState(self.playerState)
+      end
+    end
+  end
+  mod.exports.runSpriteTick = tick
+  local stepBody = World.stepBody
+  World.stepBody = function(self, ...)
+    local results = { stepBody(self, ...) }
+    tick(self)
+    return unpack(results)
+  end
+end
+
 -- engine/overworld/events.asm DoRepelStep + engine/events/repel.asm
 -- UseAnotherRepelScript: if the bag still holds the kind just used, ask.
 local function qolRepel(mod)
@@ -457,6 +531,7 @@ return function(mod)
 
   qolOptions(mod)
   qolRunning(mod)
+  qolRunSprite(mod, stats)
   qolRepel(mod)
   qolPackSort(mod)
   qolNurse(mod, stats)

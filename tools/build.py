@@ -758,7 +758,25 @@ def build_qol(ctx):
     leg = ctx["legacy"]
     std = textc.text_blocks(os.path.join(leg, "data/text/std_text.asm"))
     common = textc.text_blocks(os.path.join(leg, "data/text/common_1.asm"))
+    # gfx/sprites/{chris,kris}_run.png: Legacy's PLAYER_RUN sheets
+    # (data/sprites/player_sprites.asm), converted like Story Changes' sprites.
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "story"))
+    import sprites as SP
+    from PIL import Image
+    asset_dir = os.path.join(ROOT, "mods", "crystal_legacy_qol", "assets", "sprites")
+    os.makedirs(asset_dir, exist_ok=True)
+    run_sprites = []
+    for name, src, pal in (("SPRITE_CHRIS_RUN", "chris_run.png", "PAL_OW_RED"),
+                           ("SPRITE_KRIS_RUN", "kris_run.png", "PAL_OW_BLUE")):
+        path = os.path.join(leg, "gfx", "sprites", src)
+        SP.convert(path, os.path.join(asset_dir, src))
+        run_sprites.append({"id": name, "image": "assets/sprites/" + src,
+                            "frames": Image.open(path).size[1] // 16, "walker": True,
+                            "spriteType": "WALKING_SPRITE", "palette": pal,
+                            "paletteId": SP.PALETTE_IDS.get(pal, 0),
+                            "source": "Crystal Legacy"})
     data = {
+        "runSprites": run_sprites,
         # engine/events/std_scripts.asm PokecenterNurseScript, Legacy's short visit
         "nurseScript": "2f:409c",
         "text": {"take": std["NurseTakePokemonText"],
@@ -770,12 +788,14 @@ def build_qol(ctx):
     body = '''
   qolOptions(mod)
   qolRunning(mod)
+  qolRunSprite(mod, stats)
   qolRepel(mod)
   qolPackSort(mod)
   qolNurse(mod, stats)
   qolDayCare(mod)'''
     lines = [
-        "Hold B to run (walking at bike speed), and to surf faster",
+        "Hold B to run (walking at bike speed), and to surf faster. The player wears "
+        "Crystal Legacy's running sprite while running",
         "When a Repel wears off and you have another of the same kind, you're asked "
         "\"Use another?\"",
         "START in the PACK sorts your items into Crystal Legacy's order",
@@ -826,6 +846,58 @@ local function qolRunning(mod)
     end
     return frames
   end)
+end
+
+-- data/sprites/player_sprites.asm: Legacy's PLAYER_RUN row. Only the sheet
+-- is swapped, never wPlayerState, so everything that checks for the walking
+-- state (bike, Surf, fishing) still sees it.
+local RUN_SPRITE = { male = "SPRITE_CHRIS_RUN", female = "SPRITE_KRIS_RUN" }
+
+local function qolRunSprite(mod, stats)
+  for _, rec in ipairs(DATA.runSprites) do
+    local r = {}
+    for k, v in pairs(rec) do r[k] = v end
+    r.image = mod.path .. "/" .. rec.image
+    local ok, err = pcall(mod.content.sprites.register, mod.content.sprites, rec.id, r)
+    if ok then stats.applied = stats.applied + 1 else
+      stats.failed = stats.failed + 1
+      mod.log:warn("sprite %s: %s", rec.id, tostring(err))
+    end
+  end
+  local World = engine(mod, "src.world.gen2.World", "the running sprite")
+  local FieldMoves = engine(mod, "src.world.gen2.FieldMoves", "the running sprite")
+  if not (World and World.stepBody and World.applyPlayerState and FieldMoves) then return end
+  local function tick(self)
+    local p = self.player
+    if p then
+      local input = self.game and self.game.input
+      local want = OPT("running") and p.moving
+        and self.playerState == FieldMoves.PLAYER_NORMAL
+        and input and input.isDown and input:isDown("b") or false
+      local wearing = self.__qolRunning == p
+      if want and not wearing then
+        local gender = self.playerGender and self:playerGender()
+        local def = self.sprites
+          and self.sprites[RUN_SPRITE[FieldMoves.isFemale(gender) and "female" or "male"]]
+        if def then
+          p:setSprite(def)
+          if self.applySpritePalette then self:applySpritePalette(p) end
+          self.__qolRunning = p
+        end
+      elseif not want and wearing then
+        self.__qolRunning = nil
+        -- Back to whatever the current state wears (walking, bike, Surf).
+        self:applyPlayerState(self.playerState)
+      end
+    end
+  end
+  mod.exports.runSpriteTick = tick
+  local stepBody = World.stepBody
+  World.stepBody = function(self, ...)
+    local results = { stepBody(self, ...) }
+    tick(self)
+    return unpack(results)
+  end
 end
 
 -- engine/overworld/events.asm DoRepelStep + engine/events/repel.asm

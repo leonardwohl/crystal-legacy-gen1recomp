@@ -4,7 +4,7 @@ Crystal Legacy's quality-of-life touches: run with B, reuse Repels, sort the PAC
 
 ## What it changes
 
-- Hold B to run (walking at bike speed), and to surf faster
+- Hold B to run (walking at bike speed), and to surf faster. The player wears Crystal Legacy's running sprite while running
 - When a Repel wears off and you have another of the same kind, you're asked "Use another?"
 - START in the PACK sorts your items into Crystal Legacy's order
 - After your first visit, the Pokémon Center nurse skips her speech and heals straight away

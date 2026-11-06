@@ -193,6 +193,28 @@ local CHECKS = {
     T.eq(speed({ input = holdB, surfing = true }), 8, "qol: B surfs faster")
     T.eq(speed({ input = holdB, onBike = true }), 16, "qol: bike untouched")
     T.eq(speed({ input = { isDown = function() return false end } }), 16, "qol: walking without B")
+    -- The running sheet: registered, worn while B is held mid-step on foot,
+    -- and handed back to the state's own sprite afterwards.
+    T.eq(type(data.gen2Sprites.SPRITE_CHRIS_RUN), "table", "qol: Chris's running sprite registered")
+    T.eq(type(data.gen2Sprites.SPRITE_KRIS_RUN), "table", "qol: Kris's running sprite registered")
+    local tick = loader.exports.crystal_legacy_qol and loader.exports.crystal_legacy_qol.runSpriteTick
+    T.eq(type(tick), "function", "qol: running sprite tick exported")
+    if tick then
+      local worn, held = nil, true
+      local player = { moving = true, setSprite = function(_, def) worn = def end }
+      local world = { player = player, playerState = "normal", sprites = data.gen2Sprites,
+        playerGender = function() return "female" end,
+        game = { input = { isDown = function(_, b) return b == "b" and held end } },
+        applyPlayerState = function(self, st) worn = { id = "STATE:" .. st } end }
+      tick(world)
+      T.eq(worn and worn.id, "SPRITE_KRIS_RUN", "qol: Kris wears the running sheet with B held")
+      held = false
+      tick(world)
+      T.eq(worn and worn.id, "STATE:normal", "qol: back to walking when B is let go")
+      held = true; world.playerState = "bike"; worn = nil
+      tick(world)
+      T.eq(worn, nil, "qol: no running sheet on the bike")
+    end
     -- START in the PACK sorts the one bag list into ItemNameOrder.
     local PackMenu = require("src.ui.gen2.PackMenu")
     local save = { inventory = { POTION = 2, POKE_BALL = 3, REPEL = 1 },
