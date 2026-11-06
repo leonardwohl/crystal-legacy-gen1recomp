@@ -7277,6 +7277,53 @@ local DATA = {
         },
       },
     },
+    MOVE_DELETERS_HOUSE = {
+      bgEvents = {
+        { kind = 0, script = 19293, scriptKey = "8c:4b5d", x = 0, y = 1 },
+        { kind = 0, script = 19293, scriptKey = "8c:4b5d", x = 1, y = 1 },
+      },
+      callbacks = {},
+      coordEvents = {},
+      objects = {
+        {
+          eventFlag = 65535,
+          hours = { -1, -1 },
+          index = 1,
+          movement = 6,
+          palette = 8,
+          radius = { x = 0, y = 0 },
+          script = 19277,
+          scriptKey = "8c:4b4d",
+          sight = 0,
+          sprite = "SPRITE_SUPER_NERD",
+          spriteId = 43,
+          type = 0,
+          x = 2,
+          y = 3,
+        },
+        {
+          eventFlag = 65535,
+          hours = { -1, -1 },
+          index = 2,
+          movement = 6,
+          palette = 9,
+          radius = { x = 0, y = 0 },
+          script = 19285,
+          scriptKey = "8c:4b55",
+          sight = 0,
+          sprite = "SPRITE_SUPER_NERD",
+          spriteId = 43,
+          type = 0,
+          x = 5,
+          y = 3,
+        },
+      },
+      sceneScripts = {},
+      warps = {
+        { destGroup = 5, destMap = "BLACKTHORN_CITY", destMapNum = 10, destWarp = 6, x = 2, y = 7 },
+        { destGroup = 5, destMap = "BLACKTHORN_CITY", destMapNum = 10, destWarp = 6, x = 3, y = 7 },
+      },
+    },
     MR_FUJIS_HOUSE = {
       bgEvents = {
         { kind = 0, script = 31863, scriptKey = "8b:7c77", x = 0, y = 1 },
@@ -16002,8 +16049,8 @@ local DATA = {
     },
     RUINS_OF_ALPH_KABUTO_ITEM_ROOM = {
       bgEvents = {
-        { kind = 0, script = 18325, scriptKey = "8c:4795", x = 2, y = 1 },
-        { kind = 0, script = 18325, scriptKey = "8c:4795", x = 5, y = 1 },
+        { kind = 0, script = 18463, scriptKey = "8c:481f", x = 2, y = 1 },
+        { kind = 0, script = 18463, scriptKey = "8c:481f", x = 5, y = 1 },
       },
       callbacks = {},
       coordEvents = {},
@@ -16016,7 +16063,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18317,
+          script = 18455,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16032,7 +16079,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18319,
+          script = 18457,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16048,7 +16095,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18321,
+          script = 18459,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16064,7 +16111,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18323,
+          script = 18461,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16111,8 +16158,8 @@ local DATA = {
     },
     RUINS_OF_ALPH_OMANYTE_ITEM_ROOM = {
       bgEvents = {
-        { kind = 0, script = 18463, scriptKey = "8c:481f", x = 2, y = 1 },
-        { kind = 0, script = 18463, scriptKey = "8c:481f", x = 5, y = 1 },
+        { kind = 0, script = 18325, scriptKey = "8c:4795", x = 2, y = 1 },
+        { kind = 0, script = 18325, scriptKey = "8c:4795", x = 5, y = 1 },
       },
       callbacks = {},
       coordEvents = {},
@@ -16125,7 +16172,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18455,
+          script = 18317,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16141,7 +16188,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18457,
+          script = 18319,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16157,7 +16204,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18459,
+          script = 18321,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -16173,7 +16220,7 @@ local DATA = {
           movement = 1,
           palette = 0,
           radius = { x = 0, y = 0 },
-          script = 18461,
+          script = 18323,
           sight = 0,
           sprite = "SPRITE_POKE_BALL",
           spriteId = 84,
@@ -19396,6 +19443,16 @@ local DATA = {
         trainerType = "TRAINERTYPE_ITEM_MOVES",
       },
     },
+  },
+  reminderText = {
+    EggMoveReminderIntro = "Hiya, I'm the\nEGG-MOVE TUTOR!\fI can teach your\nPOKéMON moves they\fcan normally only\nlearn as an EGG.\fAre you\ninterested?{DONE}",
+    MoveReminderCancel = "Come back anytime.{DONE}",
+    MoveReminderEgg = "Hey! What am I\nsupposed to teach\van EGG?{DONE}",
+    MoveReminderIntro = "Hiya, I'm the\nMOVE REMINDER!\fI can make POKéMON\nrememember moves\fthat they learned\nwhile growing up.\fShall I make a\nPOKéMON remember?{DONE}",
+    MoveReminderNoMon = "You don't have a\nPOKéMON that can\vremember a move.{DONE}",
+    MoveReminderNoMoves = "There are no moves\nfor this POKéMON\vto learn.{DONE}",
+    MoveReminderWhichMon = "Which POKéMON\nwould you like\fto make remember\na move?{DONE}",
+    MoveReminderWhichMove = "Which move should\nit learn?{DONE}",
   },
   scripts = {
     ["80:401d"] = { { op = "sdefer", script = "80:402f" }, { op = "end" } },
@@ -41245,6 +41302,23 @@ local DATA = {
       { op = "closetext" },
       { op = "end" },
     },
+    ["8c:4b4d"] = {
+      { op = "faceplayer" },
+      { op = "opentext" },
+      { id = 33, op = "special" },
+      { op = "waitbutton" },
+      { op = "closetext" },
+      { op = "end" },
+    },
+    ["8c:4b55"] = {
+      { op = "faceplayer" },
+      { op = "opentext" },
+      { op = "modcommand", verb = "crystal_legacy_story:move_reminder" },
+      { op = "waitbutton" },
+      { op = "closetext" },
+      { op = "end" },
+    },
+    ["8c:4b5d"] = { { id = 500, op = "jumpstd" } },
   },
   spriteOrder = {
     ["103"] = "SPRITE_ARCHER",
@@ -43526,6 +43600,152 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
   end)
 end
 
+-- ------------------------------------------------------------ Move Reminder
+-- Crystal Legacy's engine/events/move_reminder.asm (after Polished Crystal and
+-- TPP Anniversary Crystal), on gen1recomp's own party menu and learn-move
+-- prompt: pick a Pokemon, then any level-up move it could have learned by now
+-- and does not know (or, for the Egg-move tutor, any of its egg moves).
+
+local TYPE_ABBR = {
+  NORMAL = "NRM", FIGHTING = "FGT", FLYING = "FLY", POISON = "PSN", GROUND = "GRD",
+  ROCK = "RCK", BIRD = "BRD", BUG = "BUG", GHOST = "GHT", STEEL = "STL", FIRE = "FIR",
+  WATER = "WTR", GRASS = "GRS", ELECTRIC = "ELC", PSYCHIC_TYPE = "PSY", ICE = "ICE",
+  DRAGON = "DRG", DARK = "DRK", CURSE_TYPE = "???",
+}
+
+-- GetRemindableMoves / GetEggRemindableMoves: in learnset order, no repeats,
+-- none the Pokemon already knows.
+local function remindable(def, mon, egg)
+  local known, out, seen = {}, {}, {}
+  for _, m in ipairs(mon.moves or {}) do known[m.id] = true end
+  local function add(id)
+    if id and not known[id] and not seen[id] then
+      seen[id] = true
+      out[#out + 1] = id
+    end
+  end
+  if egg then
+    for _, id in ipairs(def and def.eggMoves or {}) do add(id) end
+  else
+    for _, row in ipairs(def and def.levelMoves or {}) do
+      if (row.level or 0) <= (mon.level or 0) then add(row.move) end
+    end
+  end
+  return out
+end
+
+-- ChooseMoveToLearn: a scrolling list with type and PP, and the highlighted
+-- move's description underneath.
+local MoveList = {}
+MoveList.__index = MoveList
+MoveList.isOpaque = true
+local VISIBLE = 5
+
+function MoveList.new(game, moves, onDone)
+  return setmetatable({ game = game, moves = moves, onDone = onDone, index = 1,
+    scroll = 0, data = (game and game.data) or {} }, MoveList)
+end
+function MoveList:wantsFillScale() return true end
+function MoveList:finish(move)
+  if self.done then return end
+  self.done = true
+  -- Close before answering: the overworld (and so the script that is
+  -- waiting on this) only runs again once this screen is off the stack.
+  if self.game and self.game.stack then self.game.stack:pop() end
+  self.onDone(move)
+end
+function MoveList:update()
+  if self.done then return end
+  local input = self.game and self.game.input
+  if not input then return end
+  if input:wasPressed("up") and self.index > 1 then
+    self.index = self.index - 1
+  elseif input:wasPressed("down") and self.index < #self.moves then
+    self.index = self.index + 1
+  elseif input:wasPressed("b") then
+    return self:finish(nil)
+  elseif input:wasPressed("a") then
+    return self:finish(self.moves[self.index])
+  end
+  if self.index - 1 < self.scroll then self.scroll = self.index - 1 end
+  if self.index > self.scroll + VISIBLE then self.scroll = self.index - VISIBLE end
+end
+function MoveList:drawPanel()
+  local Chrome = require("src.ui.gen2.Chrome")
+  local moves = self.data.moves or {}
+  Chrome.textbox(0, 0, 18, 10)
+  for slot = 1, VISIBLE do
+    local id = self.moves[self.scroll + slot]
+    if id then
+      local def = moves[id] or {}
+      local y = slot * 2
+      Chrome.print(def.name or id, 2, y)
+      Chrome.print(("%s %2d"):format(TYPE_ABBR[def.type] or "???", def.pp or 0), 13, y)
+      if self.scroll + slot == self.index then Chrome.cursor(1, y) end
+    end
+  end
+  Chrome.textbox(0, 12, 18, 4)
+  local def = moves[self.moves[self.index]] or {}
+  local line = 0
+  for part in ((def.description or ""):gsub("<NEXT>", "\n") .. "\n"):gmatch("([^\n]*)\n") do
+    Chrome.print(part, 1, 14 + line * 2)
+    line = line + 1
+    if line >= 2 then break end
+  end
+  love.graphics.setColor(1, 1, 1, 1)
+end
+function MoveList:draw() self:drawPanel() end
+function MoveList:drawWidescreen(winW, winH)
+  local Chrome = require("src.ui.gen2.Chrome")
+  local G = love.graphics
+  Chrome.letterbox(winW, winH, 1, 1, 1)
+  local scale = Chrome.fitScale(winW, winH)
+  G.push()
+  G.translate(Chrome.fitOrigin(winW, winH, scale))
+  G.scale(scale, scale)
+  self:drawPanel()
+  G.pop()
+end
+
+-- Wait inside the script for a screen's callback; the screen closes itself
+-- first, so the overworld (and this script) can run again.
+local function await(vm, isDone)
+  while not isDone() do vm:waitFrames(1) end
+end
+
+local function moveReminder(mod, ctx, egg)
+  local vm, game = ctx.vm, mod.game
+  local function say(id) vm:showText("crystal_legacy_story:" .. id) end
+  if not (game and game.stack and vm) then return end
+  say(egg and "EggMoveReminderIntro" or "MoveReminderIntro")
+  if not coroutine.yield({ kind = "yesorno" }) then
+    return say("MoveReminderCancel")
+  end
+  say("MoveReminderWhichMon")
+  local PartyMenu = require("src.ui.gen2.PartyMenu")
+  local picked, done = nil, false
+  game.stack:push(PartyMenu.new(game, { prompt = "which",
+    onChoose = function(_, mon) game.stack:pop() picked, done = mon, true end,
+    onCancel = function() game.stack:pop() done = true end }))
+  await(vm, function() return done end)
+  if not picked then return say("MoveReminderCancel") end
+  if picked.isEgg then return say("MoveReminderEgg") end
+  local def = game.data and game.data.pokemon and game.data.pokemon[picked.species]
+  local moves = remindable(def, picked, egg)
+  if #moves == 0 then return say("MoveReminderNoMoves") end
+  say("MoveReminderWhichMove")
+  local chosen
+  done = false
+  game.stack:push(MoveList.new(game, moves, function(m) chosen, done = m, true end))
+  await(vm, function() return done end)
+  if chosen and game.learnMoveOn then
+    done = false
+    game:learnMoveOn(picked, chosen, function() done = true end)
+    await(vm, function() return done end)
+  end
+  say("MoveReminderCancel")
+end
+
 local function copy(v)
   if type(v) ~= "table" then return v end
   local out = {}
@@ -43571,6 +43791,15 @@ return function(mod)
   each(DATA.items, function(id, fields)
     if mod.content.items:get(id) then patch(mod, "items", id, fields, stats) end
   end)
+
+  -- The Move Reminder (Move Deleter's house) and its Egg-move twin.
+  each(DATA.reminderText, function(id, s)
+    register(mod, "text", "crystal_legacy_story:" .. id, s, stats)
+  end)
+  register(mod, "commands", "crystal_legacy_story:move_reminder",
+    function(ctx) return moveReminder(mod, ctx, false) end, stats)
+  register(mod, "commands", "crystal_legacy_story:egg_move_reminder",
+    function(ctx) return moveReminder(mod, ctx, true) end, stats)
 
   -- 1. Legacy's text, movements and scripts, under their own (bank $80+) keys.
   each(DATA.text, function(id, s) register(mod, "text", id, s, stats) end)

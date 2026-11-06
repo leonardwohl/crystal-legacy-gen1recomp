@@ -5,7 +5,7 @@ using Crystal Legacy's own scripts and text.
 
 ## What's in
 
-Every map Crystal Legacy changed is ported (130 of them), apart from the
+Every map Crystal Legacy changed is ported (131 of them), apart from the
 exclusions below. That includes:
 
 - **Team Rocket:** Archer (his own class, art and sprite) in the Radio Tower
@@ -19,6 +19,8 @@ exclusions below. That includes:
 - **Legendaries and events:** the legendary birds and Mew on Route 24,
   Celebi, the Mt. Mortar and Lake of Rage changes, Kurt, the Goldenrod Flower
   Shop's Squirtbottle and Gold Berry, and more.
+- **Move Reminder:** the new NPC in Blackthorn's Move Deleter's house, free,
+  for any level-up move a Pokémon could have learned by its level.
 - **Kanto gyms** and the many smaller dialogue fixes across both regions.
 - **Overworld Pokémon and sprites:** about 30 new walking and Pokémon
   sprites, with Crystal Legacy's art.
@@ -30,8 +32,6 @@ exclusions below. That includes:
   would double up the rematch offers and badge switches, so their dialogue
   tweaks are not included.
 - **Celadon Dept. Store 3F/5F**: handled by Shop Changes.
-- **Move Deleter's house**: Crystal Legacy adds a Move Reminder there, which
-  is new engine code gen1recomp has no counterpart for yet.
 - **Hard Mode branches** in Crystal Legacy's scripts are left switched off;
   the Legacy Hard Mode mod applies those rules on its own.
 
@@ -56,6 +56,11 @@ change between releases:
 - **Events:** ids vanilla leaves unused.
 - **Sprites:** $67+ for people, $a3+ for Pokémon.
 - **Fossils:** item slots $93-$95, as in Crystal Legacy.
+
+Crystal Legacy's Move Reminder is engine code, not a script. Its
+`special MoveReminder` row is swapped at build time for a mod command that
+runs the same flow on gen1recomp's party menu and learn-move prompt. That
+part needs the `engine_internals` permission.
 
 Games: Crystal (1.0 and 1.1). Needs gen1recomp >=0.4.0 <0.5.0. Works with or
 without the other Crystal Legacy mods.

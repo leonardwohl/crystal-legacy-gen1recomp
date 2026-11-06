@@ -18,7 +18,9 @@
     "crystal_legacy_shops"
   ],
   "conflicts": [],
-  "permissions": [],
+  "permissions": [
+    "engine_internals"
+  ],
   "description": "Crystal Legacy's story changes, starting with the Trainer House trio, Archer and the Silver Cave Mewtwo / Red rematch. Unofficial port of Pokemon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

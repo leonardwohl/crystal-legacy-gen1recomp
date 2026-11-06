@@ -335,6 +335,56 @@ local CHECKS = {
     for i = 1, math.min(#crashed, 10) do print("crash: " .. crashed[i]) end
     T.eq(#entries > 300, true, "story: smoke test found the map entry points (" .. #entries .. ")")
     T.eq(#crashed, 0, "story: every map entry point runs without a Lua error")
+    -- Move Reminder: talk to the second NPC in the Move Deleter's house with a
+    -- level-20 Chikorita that has forgotten Razor Leaf, and learn it back.
+    do
+      local house = data.gen2Maps.MOVE_DELETERS_HOUSE
+      local key = house and house.objects[2] and house.objects[2].scriptKey
+      local stack, pressed = {}, {}
+      local mon = { species = "CHIKORITA", level = 20,
+        moves = { { id = "TACKLE" }, { id = "GROWL" } } }
+      local learnedMove, listShown
+      local game = { data = data,
+        stack = { push = function(_, s) stack[#stack + 1] = s end,
+                  pop = function() stack[#stack] = nil end },
+        input = { wasPressed = function(_, b) return pressed[b] end },
+        learnMoveOn = function(_, m, move, cb) learnedMove = move cb(true) end }
+      package.loaded["src.ui.gen2.PartyMenu"] = { new = function(_, opts)
+        return { update = function() opts.onChoose(nil, mon) end }
+      end }
+      loader.game = game  -- what mod.game resolves to (Loader:_game)
+      local seen = {}
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, Events.new(), {
+        showText = function(b, onDone) seen[#seen + 1] = tostring(b) if onDone then onDone() end end,
+        yesorno = function(f) f(true) end,
+        commands = data.commands,
+      })
+      vm:start(key)
+      for _ = 1, 500 do
+        local top = stack[#stack]
+        if top then
+          if top.moves and not listShown then listShown = top.moves end
+          pressed = { a = top.moves ~= nil }
+          top:update(0)
+        elseif vm:running() then vm:update() else break end
+      end
+      local all = table.concat(seen, " | ")
+      local expected
+      for _, row in ipairs(data.pokemon.CHIKORITA.levelMoves or {}) do
+        if row.level <= 20 and row.move ~= "TACKLE" and row.move ~= "GROWL" then
+          expected = row.move break
+        end
+      end
+      T.eq(all:find("MOVE REMINDER", 1, true) ~= nil, true, "story: Move Reminder greets")
+      T.eq(listShown and listShown[1], expected, "story: list starts with the first forgotten move")
+      local hasKnown = false
+      for _, m in ipairs(listShown or {}) do if m == "TACKLE" then hasKnown = true end end
+      T.eq(hasKnown, false, "story: known moves are not offered")
+      T.eq(learnedMove, expected, "story: the chosen move is learned")
+      T.eq(all:find("Come back anytime", 1, true) ~= nil, true, "story: and says goodbye")
+      package.loaded["src.ui.gen2.PartyMenu"] = nil
+      loader.game = nil
+    end
     local th = data.gen2Maps.TRAINER_HOUSE_B1F
     local thKey = th.coordEvents and th.coordEvents[1] and th.coordEvents[1].scriptKey
     local mon = run(thKey, { vars = { [11] = 1 } })

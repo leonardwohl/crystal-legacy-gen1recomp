@@ -44,9 +44,18 @@ EXCLUDE = {
     "WillsRoom", "KogasRoom", "BrunosRoom", "KarensRoom", "LancesRoom",
     # Shop Changes
     "CeladonDeptStore3F", "CeladonDeptStore5F",
-    # Move Reminder (no gen1recomp counterpart yet)
-    "MoveDeletersHouse",
 }
+
+# Legacy's Move Reminder is engine code (engine/events/move_reminder.asm),
+# reached by `special MoveReminder`. The special gets a sentinel id here, and
+# the decoded row is swapped for a mod command that runs the same flow on
+# gen1recomp's own party menu and learn-move prompt.
+REMINDER_SPECIALS = {"MoveReminderSpecial": 900 * 3, "EggMoveReminderSpecial": 901 * 3}
+REMINDER_VERBS = {900: "crystal_legacy_story:move_reminder",
+                  901: "crystal_legacy_story:egg_move_reminder"}
+REMINDER_TEXTS = ["_MoveReminderIntro", "_EggMoveReminderIntro", "_MoveReminderWhichMon",
+                  "_MoveReminderWhichMove", "_MoveReminderCancel", "_MoveReminderEgg",
+                  "_MoveReminderNoMon", "_MoveReminderNoMoves"]
 EVENT_IDS = os.path.join(HERE, "event_ids.json")
 SPRITE_IDS = os.path.join(HERE, "sprite_ids.json")
 
@@ -151,7 +160,7 @@ def main():
     # Event ids are stored in saves, so once given out they never change.
     pinned = json.load(open(EVENT_IDS)) if os.path.exists(EVENT_IDS) else {}
     r = assemble.build(a.base, a.legacy, a.rgbds, a.work, files,
-                       dict(sprite_defs, **pinned))
+                       dict(sprite_defs, **pinned, **REMINDER_SPECIALS))
     events = dict(pinned, **r["newEvents"])
     with open(EVENT_IDS, "w") as fh:
         json.dump(events, fh, indent=2, sort_keys=True)
@@ -169,6 +178,16 @@ def main():
                 'local Json=require("src.link.Json") '
                 'io.write(Json.encode(dofile(%s)))' % json.dumps(story_lua)], cwd=a.engine)
     story = json.loads(dump)
+    swapped = 0
+    for rows in story["scripts"].values():
+        for i, row in enumerate(rows):
+            if row.get("op") == "special" and row.get("id") in REMINDER_VERBS:
+                rows[i] = {"op": "modcommand", "verb": REMINDER_VERBS[row["id"]]}
+                swapped += 1
+    print("move reminder rows:", swapped)
+    import textc
+    common = textc.text_blocks(os.path.join(a.legacy, "data/text/common_3.asm"))
+    reminder_text = {k.lstrip("_"): common[k] for k in REMINDER_TEXTS}
 
     # Trainer data from Legacy's parties.asm (same parser as Trainer Changes).
     report = {"notes": []}
@@ -217,6 +236,7 @@ def main():
         "classes": classes, "parties": parties, "extras": extra_fields,
         "newEvents": r["newEvents"],
         "items": FOSSILS,
+        "reminderText": reminder_text,
         "sprites": sprite_records,
         "spriteOrder": {str(k): v for k, v in sprite_order.items()},
     }
@@ -228,6 +248,152 @@ def main():
 
 
 RUNTIME = r'''
+-- ------------------------------------------------------------ Move Reminder
+-- Crystal Legacy's engine/events/move_reminder.asm (after Polished Crystal and
+-- TPP Anniversary Crystal), on gen1recomp's own party menu and learn-move
+-- prompt: pick a Pokemon, then any level-up move it could have learned by now
+-- and does not know (or, for the Egg-move tutor, any of its egg moves).
+
+local TYPE_ABBR = {
+  NORMAL = "NRM", FIGHTING = "FGT", FLYING = "FLY", POISON = "PSN", GROUND = "GRD",
+  ROCK = "RCK", BIRD = "BRD", BUG = "BUG", GHOST = "GHT", STEEL = "STL", FIRE = "FIR",
+  WATER = "WTR", GRASS = "GRS", ELECTRIC = "ELC", PSYCHIC_TYPE = "PSY", ICE = "ICE",
+  DRAGON = "DRG", DARK = "DRK", CURSE_TYPE = "???",
+}
+
+-- GetRemindableMoves / GetEggRemindableMoves: in learnset order, no repeats,
+-- none the Pokemon already knows.
+local function remindable(def, mon, egg)
+  local known, out, seen = {}, {}, {}
+  for _, m in ipairs(mon.moves or {}) do known[m.id] = true end
+  local function add(id)
+    if id and not known[id] and not seen[id] then
+      seen[id] = true
+      out[#out + 1] = id
+    end
+  end
+  if egg then
+    for _, id in ipairs(def and def.eggMoves or {}) do add(id) end
+  else
+    for _, row in ipairs(def and def.levelMoves or {}) do
+      if (row.level or 0) <= (mon.level or 0) then add(row.move) end
+    end
+  end
+  return out
+end
+
+-- ChooseMoveToLearn: a scrolling list with type and PP, and the highlighted
+-- move's description underneath.
+local MoveList = {}
+MoveList.__index = MoveList
+MoveList.isOpaque = true
+local VISIBLE = 5
+
+function MoveList.new(game, moves, onDone)
+  return setmetatable({ game = game, moves = moves, onDone = onDone, index = 1,
+    scroll = 0, data = (game and game.data) or {} }, MoveList)
+end
+function MoveList:wantsFillScale() return true end
+function MoveList:finish(move)
+  if self.done then return end
+  self.done = true
+  -- Close before answering: the overworld (and so the script that is
+  -- waiting on this) only runs again once this screen is off the stack.
+  if self.game and self.game.stack then self.game.stack:pop() end
+  self.onDone(move)
+end
+function MoveList:update()
+  if self.done then return end
+  local input = self.game and self.game.input
+  if not input then return end
+  if input:wasPressed("up") and self.index > 1 then
+    self.index = self.index - 1
+  elseif input:wasPressed("down") and self.index < #self.moves then
+    self.index = self.index + 1
+  elseif input:wasPressed("b") then
+    return self:finish(nil)
+  elseif input:wasPressed("a") then
+    return self:finish(self.moves[self.index])
+  end
+  if self.index - 1 < self.scroll then self.scroll = self.index - 1 end
+  if self.index > self.scroll + VISIBLE then self.scroll = self.index - VISIBLE end
+end
+function MoveList:drawPanel()
+  local Chrome = require("src.ui.gen2.Chrome")
+  local moves = self.data.moves or {}
+  Chrome.textbox(0, 0, 18, 10)
+  for slot = 1, VISIBLE do
+    local id = self.moves[self.scroll + slot]
+    if id then
+      local def = moves[id] or {}
+      local y = slot * 2
+      Chrome.print(def.name or id, 2, y)
+      Chrome.print(("%s %2d"):format(TYPE_ABBR[def.type] or "???", def.pp or 0), 13, y)
+      if self.scroll + slot == self.index then Chrome.cursor(1, y) end
+    end
+  end
+  Chrome.textbox(0, 12, 18, 4)
+  local def = moves[self.moves[self.index]] or {}
+  local line = 0
+  for part in ((def.description or ""):gsub("<NEXT>", "\n") .. "\n"):gmatch("([^\n]*)\n") do
+    Chrome.print(part, 1, 14 + line * 2)
+    line = line + 1
+    if line >= 2 then break end
+  end
+  love.graphics.setColor(1, 1, 1, 1)
+end
+function MoveList:draw() self:drawPanel() end
+function MoveList:drawWidescreen(winW, winH)
+  local Chrome = require("src.ui.gen2.Chrome")
+  local G = love.graphics
+  Chrome.letterbox(winW, winH, 1, 1, 1)
+  local scale = Chrome.fitScale(winW, winH)
+  G.push()
+  G.translate(Chrome.fitOrigin(winW, winH, scale))
+  G.scale(scale, scale)
+  self:drawPanel()
+  G.pop()
+end
+
+-- Wait inside the script for a screen's callback; the screen closes itself
+-- first, so the overworld (and this script) can run again.
+local function await(vm, isDone)
+  while not isDone() do vm:waitFrames(1) end
+end
+
+local function moveReminder(mod, ctx, egg)
+  local vm, game = ctx.vm, mod.game
+  local function say(id) vm:showText("crystal_legacy_story:" .. id) end
+  if not (game and game.stack and vm) then return end
+  say(egg and "EggMoveReminderIntro" or "MoveReminderIntro")
+  if not coroutine.yield({ kind = "yesorno" }) then
+    return say("MoveReminderCancel")
+  end
+  say("MoveReminderWhichMon")
+  local PartyMenu = require("src.ui.gen2.PartyMenu")
+  local picked, done = nil, false
+  game.stack:push(PartyMenu.new(game, { prompt = "which",
+    onChoose = function(_, mon) game.stack:pop() picked, done = mon, true end,
+    onCancel = function() game.stack:pop() done = true end }))
+  await(vm, function() return done end)
+  if not picked then return say("MoveReminderCancel") end
+  if picked.isEgg then return say("MoveReminderEgg") end
+  local def = game.data and game.data.pokemon and game.data.pokemon[picked.species]
+  local moves = remindable(def, picked, egg)
+  if #moves == 0 then return say("MoveReminderNoMoves") end
+  say("MoveReminderWhichMove")
+  local chosen
+  done = false
+  game.stack:push(MoveList.new(game, moves, function(m) chosen, done = m, true end))
+  await(vm, function() return done end)
+  if chosen and game.learnMoveOn then
+    done = false
+    game:learnMoveOn(picked, chosen, function() done = true end)
+    await(vm, function() return done end)
+  end
+  say("MoveReminderCancel")
+end
+
 local function copy(v)
   if type(v) ~= "table" then return v end
   local out = {}
@@ -262,7 +428,9 @@ def write_mod(mod_dir, data):
         "game_version": B.GAME_VERSION, "priority": 100, "dependencies": [],
         "optional_dependencies": ["crystal_legacy_trainers", "crystal_legacy_rematches",
                                   "crystal_legacy_shops"],
-        "conflicts": [], "permissions": [],
+        # The Move Reminder opens gen1recomp's party menu and draws its list
+        # with the engine's Chrome helpers.
+        "conflicts": [], "permissions": ["engine_internals"],
         "description": "Crystal Legacy's story changes, starting with the Trainer House "
                        "trio, Archer and the Silver Cave Mewtwo / Red rematch. "
                        "Unofficial port of Pokemon Crystal Legacy.",
@@ -292,6 +460,15 @@ return function(mod)
   each(DATA.items, function(id, fields)
     if mod.content.items:get(id) then patch(mod, "items", id, fields, stats) end
   end)
+
+  -- The Move Reminder (Move Deleter's house) and its Egg-move twin.
+  each(DATA.reminderText, function(id, s)
+    register(mod, "text", "crystal_legacy_story:" .. id, s, stats)
+  end)
+  register(mod, "commands", "crystal_legacy_story:move_reminder",
+    function(ctx) return moveReminder(mod, ctx, false) end, stats)
+  register(mod, "commands", "crystal_legacy_story:egg_move_reminder",
+    function(ctx) return moveReminder(mod, ctx, true) end, stats)
 
   -- 1. Legacy's text, movements and scripts, under their own (bank $80+) keys.
   each(DATA.text, function(id, s) register(mod, "text", id, s, stats) end)
