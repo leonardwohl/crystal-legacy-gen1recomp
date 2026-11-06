@@ -1,6 +1,6 @@
 {
   "id": "legacy_hard_mode",
-  "name": "Legacy Hard Mode",
+  "name": "Legacy: Hard Mode",
   "version": "0.2.1",
   "api": 2,
   "games": ["crystal"],

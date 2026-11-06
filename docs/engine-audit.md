@@ -39,7 +39,7 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 
 Crystal Legacy fixes many of the bugs pret documents. gen1recomp reproduces
 some on purpose and simply doesn't have others, so each was checked against
-its source. Ported fixes live in **Crystal Legacy: Bug Fixes**.
+its source. Ported fixes live in **Legacy: Bug Fixes**.
 
 ✅ ported · ➖ gen1recomp already behaves correctly · 🔜 still to check
 

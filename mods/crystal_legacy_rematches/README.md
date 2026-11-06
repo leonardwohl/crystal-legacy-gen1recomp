@@ -1,4 +1,4 @@
-# Crystal Legacy: Rematches
+# Legacy: Rematches
 
 Rematch every gym leader after the Elite Four, and the Elite Four themselves once you have all 16 badges.
 

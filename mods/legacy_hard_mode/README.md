@@ -1,4 +1,4 @@
-# Legacy Hard Mode
+# Legacy: Hard Mode
 
 Crystal Legacy's optional Hard Mode for gen1recomp's Crystal. Each rule can be
 toggled in the mod's options.

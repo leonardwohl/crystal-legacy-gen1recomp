@@ -445,7 +445,7 @@ def changed_trades(base, legacy):
 
 def write_mod(mod_dir, data):
     manifest = {
-        "id": MOD_ID, "name": "Crystal Legacy: Story Changes", "version": B.VERSION, "api": 2,
+        "id": MOD_ID, "name": "Legacy: Story Changes", "version": B.VERSION, "api": 2,
         "games": ["crystal"], "entry": "main.lua", "profile": "content", "category": "CONTENT",
         "game_version": B.GAME_VERSION, "priority": 100, "dependencies": [],
         "optional_dependencies": ["crystal_legacy_trainers", "crystal_legacy_rematches",
@@ -584,7 +584,7 @@ return function(mod)
       return party
     end)
   end
-  mod.log:info("Crystal Legacy: Story Changes: %d applied, %d refused", stats.applied, stats.failed)
+  mod.log:info("Legacy: Story Changes: %d applied, %d refused", stats.applied, stats.failed)
 end
 '''
     with open(os.path.join(mod_dir, "main.lua"), "w", encoding="utf-8") as fh:

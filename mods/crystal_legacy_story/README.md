@@ -1,4 +1,4 @@
-# Crystal Legacy: Story Changes
+# Legacy: Story Changes
 
 Crystal Legacy's story, event and dialogue changes for gen1recomp's Crystal,
 using Crystal Legacy's own scripts and text.

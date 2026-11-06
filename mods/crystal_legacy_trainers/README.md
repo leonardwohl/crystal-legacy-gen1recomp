@@ -1,4 +1,4 @@
-# Crystal Legacy: Trainer Changes
+# Legacy: Trainer Changes
 
 Every trainer, gym leader and Elite Four team rebuilt as in Crystal Legacy.
 

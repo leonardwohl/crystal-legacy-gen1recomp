@@ -1,4 +1,4 @@
-# Crystal Legacy: Shop Changes
+# Legacy: Shop Changes
 
 Crystal Legacy's shop stock and item prices.
 

@@ -44029,5 +44029,5 @@ return function(mod)
       return party
     end)
   end
-  mod.log:info("Crystal Legacy: Story Changes: %d applied, %d refused", stats.applied, stats.failed)
+  mod.log:info("Legacy: Story Changes: %d applied, %d refused", stats.applied, stats.failed)
 end

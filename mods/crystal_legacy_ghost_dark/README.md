@@ -1,4 +1,4 @@
-# Crystal Legacy: Ghost/Dark Switch
+# Legacy: Ghost/Dark Switch
 
 Ghost moves become special and Dark moves physical, as in Crystal Legacy.
 

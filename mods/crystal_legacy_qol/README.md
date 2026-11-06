@@ -1,4 +1,4 @@
-# Crystal Legacy: Quality of Life
+# Legacy: Quality of Life
 
 Crystal Legacy's quality-of-life touches: run with B, reuse Repels, sort the PACK with START, a quicker nurse, and a Day-Care that keeps your Pokémon's experience.
 

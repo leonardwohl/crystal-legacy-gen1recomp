@@ -1,4 +1,4 @@
-# Crystal Legacy: Encounter Changes
+# Legacy: Encounter Changes
 
 Crystal Legacy's wild Pokémon: grass, surfing and the Bug-Catching Contest.
 

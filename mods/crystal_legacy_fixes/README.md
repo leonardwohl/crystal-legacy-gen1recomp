@@ -1,4 +1,4 @@
-# Crystal Legacy: Bug Fixes
+# Legacy: Bug Fixes
 
 The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: Poké Ball catch bonuses, the trainer AI and the Glacier Badge.
 

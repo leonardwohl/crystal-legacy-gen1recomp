@@ -1,4 +1,4 @@
-# Crystal Legacy: Pokémon Changes
+# Legacy: Pokémon Changes
 
 Crystal Legacy's base stats, learnsets, TM/HM and egg moves, evolutions and move changes.
 
