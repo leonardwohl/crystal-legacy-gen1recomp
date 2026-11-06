@@ -419,7 +419,15 @@ local CHECKS = {
     local hsave = { party = party() }
     World.healParty({ game = { save = hsave, data = data } })
     T.eq(hsave.party[1].hp, 20, "hardcore: off by default (Center revives)")
+    local function rivalType(class)
+      local opts = { trainer = { classId = class }, battleType = 1 }
+      World.startBattle({ game = {} }, opts, function() end)
+      return opts.battleType
+    end
+    T.eq(rivalType("RIVAL1"), 1, "hardcore off: Cherrygrove rival stays a can-lose battle")
     loader.modOptions.legacy_hard_mode = { hardcore = true }
+    T.eq(rivalType("RIVAL1"), 0, "hardcore: Cherrygrove rival is a real battle")
+    T.eq(rivalType("YOUNGSTER"), 1, "hardcore: other can-lose battles untouched")
     hsave = { party = party() }
     local before = hsave.party
     World.healParty({ game = { save = hsave, data = data } })

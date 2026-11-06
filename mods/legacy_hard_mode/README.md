@@ -18,7 +18,8 @@ toggled in the mod's options.
   - Revive, Max Revive and Revival Herb can't be used, and Rare Candy and
     vitamins do nothing on a fainted Pokémon;
   - the PC and the Day-Care won't take a fainted Pokémon;
-  - whiting out sends you back to the title screen, to carry on from your last save.
+  - whiting out sends you back to the title screen, to carry on from your last save;
+  - the first rival fight in Cherrygrove is a real battle: losing it is a whiteout.
 
 ## Cap schedule (from Crystal Legacy)
 
@@ -41,8 +42,6 @@ rematch (which needs the Rematches mod) and Red.
 
 ## Not included yet
 
-- **Hardcore's rival battle**: Crystal Legacy makes the Cherrygrove rival fight one
-  you can't afford to lose in Hardcore; here it stays the usual "can lose" battle.
 - **Gen 1 and Gen 3**: the rules would port, but they need cap tables of their
   own (Yellow Legacy has one for Gen 1).
 

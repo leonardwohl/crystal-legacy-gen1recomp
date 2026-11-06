@@ -16,8 +16,8 @@
 -- Hardcore (opt-in, off by default), from Crystal Legacy's ENGINE_HARDCORE_MODE
 -- checks: fainted Pokémon are not healed (Pokémon Center, Sacred Ash, Mom),
 -- revives can't be used, Rare Candy and vitamins do nothing on a fainted
--- Pokémon, the PC and the Day-Care won't take one, and whiting out resets the
--- game to your last save.
+-- Pokémon, the PC and the Day-Care won't take one, whiting out resets the
+-- game to your last save, and the Cherrygrove rival fight can't be lost.
 --
 -- Event ids are vanilla Crystal's (pokecrystal constants/event_flags.asm),
 -- matching src/core/gen2/FlagNames.lua in gen1recomp.
@@ -271,6 +271,24 @@ return function(mod)
       local ok, err = pcall(healParty, self, ...)
       save.party = party
       if not ok then error(err, 0) end
+    end
+  end
+
+  -- maps/CherrygroveCity.asm .LoadHardcoreModeBattle: in Hardcore the first
+  -- rival fight is no longer BATTLETYPE_CANLOSE, so losing it is a real
+  -- whiteout -- and a Hardcore whiteout resets the game. (Legacy also makes
+  -- it Set style with no items; the trainer-battle rules above already do.)
+  local BATTLETYPE_CANLOSE, BATTLETYPE_NORMAL = 1, 0
+  if World and World.startBattle then
+    local startBattle = World.startBattle
+    World.startBattle = function(self, opts, ...)
+      local t = type(opts) == "table" and opts.trainer
+      local class = type(t) == "table" and (t.classId or t.class)
+      if hardcore() and opts and opts.battleType == BATTLETYPE_CANLOSE
+          and class == "RIVAL1" then
+        opts.battleType = BATTLETYPE_NORMAL
+      end
+      return startBattle(self, opts, ...)
     end
   end
 
