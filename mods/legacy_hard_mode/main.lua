@@ -2,6 +2,7 @@
 --
 --   * Level caps that rise with story progress. Pokémon at the cap gain no
 --     experience and Rare Candy has no effect on them.
+--   * The Day-Care follows the same cap.
 --   * Trainer battles are fought in SET style (no free switch when the foe's
 --     Pokémon faints) and the PACK cannot be used in them.
 --
@@ -136,6 +137,44 @@ return function(mod)
     })
   else
     mod.log:warn("RARE_CANDY effect not found; Rare Candy is not capped")
+  end
+
+  -- The Day-Care: engine/events/happiness_egg.asm DayCareStep compares the
+  -- deposited level against wLevelCap instead of MAX_LEVEL. Legacy checks only
+  -- the deposit level, so a Pokemon left one level under the cap could come
+  -- back far past it; here the exp also stops at the cap's threshold, the way
+  -- battle exp does above. Exp a Pokemon already had is never taken away.
+  local okB, Breeding = pcall(require, "src.core.gen2.Breeding")
+  local okM, Mon = pcall(require, "src.battle.gen2.Mon")
+  if okB and okM and Breeding and Breeding.dayCareStep and Breeding.side then
+    local dayCareStep = Breeding.dayCareStep
+    Breeding.dayCareStep = function(data, save, ...)
+      if not option("levelCaps") then return dayCareStep(data, save, ...) end
+      local before = {}
+      for _, side in ipairs({ "man", "lady" }) do
+        local slot = Breeding.side(save, side)
+        before[side] = slot and slot.mon and slot.mon.experience
+      end
+      local results = { dayCareStep(data, save, ...) }
+      local cap = currentCap()
+      for _, side in ipairs({ "man", "lady" }) do
+        local slot = Breeding.side(save, side)
+        local mon = slot and slot.mon
+        local was = before[side]
+        if mon and type(was) == "number" and type(mon.experience) == "number" then
+          if (mon.level or 1) >= cap then
+            mon.experience = was
+          else
+            local def = data and data.pokemon and data.pokemon[mon.species]
+            local limit = Mon.experienceForLevel(Mon.growthFor(data, def and def.growthRate), cap)
+            mon.experience = math.min(mon.experience, math.max(was, limit))
+          end
+        end
+      end
+      return unpack(results)
+    end
+  else
+    mod.log:warn("Day-Care module not found; Day-Care exp is not capped")
   end
 
   -- -------------------------------------------- trainer battle rules

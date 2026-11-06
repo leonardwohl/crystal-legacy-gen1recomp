@@ -7,7 +7,8 @@ toggled in the mod's options.
 
 - **Level caps.** Pokémon at the cap gain no experience, and Rare Candy has no
   effect on them. Experience also stops exactly at the cap rather than
-  overshooting it.
+  overshooting it. The Day-Care follows the same cap: a Pokémon left there
+  stops growing at the current cap.
 - **Set style against trainers.** No free switch when the foe's Pokémon faints.
   Your own Shift/Set option is restored after each battle.
 - **No items against trainers.** The PACK shows "Items can't be used here."
@@ -42,7 +43,6 @@ rematch (which needs the Rematches mod) and Red.
 
 - **Hardcore's rival battle**: Crystal Legacy makes the Cherrygrove rival fight one
   you can't afford to lose in Hardcore; here it stays the usual "can lose" battle.
-- **Day-Care level cap**: gen1recomp has no hook for Day-Care experience.
 - **Gen 1 and Gen 3**: the rules would port, but they need cap tables of their
   own (Yellow Legacy has one for Gen 1).
 

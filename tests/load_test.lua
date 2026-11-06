@@ -396,6 +396,20 @@ local CHECKS = {
       "hard mode: wild battles get the normal PACK")
     Runtime.emit("battle.ended", { battle = ui, result = "win" })
 
+    -- Day-Care: growth stops at the cap (10 with no badges), and a Pokemon
+    -- deposited at the cap gains nothing.
+    local Breeding = require("src.core.gen2.Breeding")
+    local function dayCare(level, exp)
+      local dsave = { player = {} }
+      Breeding.dayCare(dsave).man.mon = { species = "CHIKORITA", level = level, experience = exp }
+      for _ = 1, 200 do Breeding.dayCareStep(data, dsave, function() return 0 end) end
+      return Breeding.side(dsave, "man").mon.experience
+    end
+    local cap10 = Mon.experienceForLevel(growth, 10)
+    T.eq(dayCare(9, cap10 - 50), cap10, "hard mode: Day-Care exp stops at the cap")
+    T.eq(dayCare(10, cap10 + 5), cap10 + 5, "hard mode: no Day-Care exp at the cap")
+    T.eq(dayCare(5, 200), 400, "hard mode: Day-Care growth below the cap unchanged")
+
     -- Hardcore: off by default, then every rule with it on.
     local World = require("src.world.gen2.World")
     local function party()
