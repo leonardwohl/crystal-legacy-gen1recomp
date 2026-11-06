@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "generated_at": "2026-11-06T15:25:30Z",
+ "generated_at": "2026-11-06T16:30:57Z",
  "count": 9,
  "categories": [
   "BALANCE",
@@ -18,7 +18,7 @@
    "id": "crystal_legacy_encounters",
    "title": "Crystal Legacy: Encounter Changes (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Crystal Legacy's wild Pokémon: grass, surfing and the Bug-Catching Contest. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "CONTENT"
@@ -31,20 +31,22 @@
    "api": 2,
    "game_version": ">=0.4.0 <0.5.0",
    "profile": "content",
-   "permissions": [],
+   "permissions": [
+    "engine_internals"
+   ],
    "dependencies": [],
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_encounters/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_encounters-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_encounters-0.2.2-dev.15.zip",
-     "size": 6135
+     "name": "crystal_legacy_encounters-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_encounters-0.2.2-dev.17.zip",
+     "size": 6479
     }
    },
    "update_check": "ok"
@@ -54,7 +56,7 @@
    "id": "crystal_legacy_ghost_dark",
    "title": "Crystal Legacy: Ghost/Dark Switch (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Ghost moves become special and Dark moves physical, as in Crystal Legacy. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "BALANCE"
@@ -72,14 +74,14 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_ghost_dark/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_ghost_dark-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_ghost_dark-0.2.2-dev.15.zip",
+     "name": "crystal_legacy_ghost_dark-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_ghost_dark-0.2.2-dev.17.zip",
      "size": 2027
     }
    },
@@ -90,7 +92,7 @@
    "id": "crystal_legacy_pokemon",
    "title": "Crystal Legacy: Pokémon Changes (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Crystal Legacy's base stats, learnsets, TM/HM and egg moves, evolutions and move changes. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "BALANCE"
@@ -103,20 +105,22 @@
    "api": 2,
    "game_version": ">=0.4.0 <0.5.0",
    "profile": "content",
-   "permissions": [],
+   "permissions": [
+    "engine_internals"
+   ],
    "dependencies": [],
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_pokemon/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_pokemon-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_pokemon-0.2.2-dev.15.zip",
-     "size": 18881
+     "name": "crystal_legacy_pokemon-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_pokemon-0.2.2-dev.17.zip",
+     "size": 20300
     }
    },
    "update_check": "ok"
@@ -126,7 +130,7 @@
    "id": "crystal_legacy_rematches",
    "title": "Crystal Legacy: Rematches (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Rematch every gym leader after the Elite Four, and the Elite Four themselves once you have all 16 badges. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "CONTENT"
@@ -144,15 +148,15 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_rematches/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_rematches-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_rematches-0.2.2-dev.15.zip",
-     "size": 8676
+     "name": "crystal_legacy_rematches-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_rematches-0.2.2-dev.17.zip",
+     "size": 8677
     }
    },
    "update_check": "ok"
@@ -162,7 +166,7 @@
    "id": "crystal_legacy_shops",
    "title": "Crystal Legacy: Shop Changes (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Crystal Legacy's shop stock and item prices. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "BALANCE"
@@ -182,14 +186,14 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_shops/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_shops-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_shops-0.2.2-dev.15.zip",
+     "name": "crystal_legacy_shops-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_shops-0.2.2-dev.17.zip",
      "size": 4776
     }
    },
@@ -200,7 +204,7 @@
    "id": "crystal_legacy_story",
    "title": "Crystal Legacy: Story Changes (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Crystal Legacy's story changes, starting with the Trainer House trio, Archer and the Silver Cave Mewtwo / Red rematch. Unofficial port of Pokemon Crystal Legacy.",
    "categories": [
     "CONTENT"
@@ -220,15 +224,15 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_story/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_story-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_story-0.2.2-dev.15.zip",
-     "size": 204160
+     "name": "crystal_legacy_story-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_story-0.2.2-dev.17.zip",
+     "size": 204718
     }
    },
    "update_check": "ok"
@@ -238,7 +242,7 @@
    "id": "crystal_legacy_trainers",
    "title": "Crystal Legacy: Trainer Changes (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Every trainer, gym leader and Elite Four team rebuilt as in Crystal Legacy. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "BALANCE"
@@ -256,15 +260,15 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/crystal_legacy_trainers/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "crystal_legacy_trainers-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_trainers-0.2.2-dev.15.zip",
-     "size": 27640
+     "name": "crystal_legacy_trainers-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/crystal_legacy_trainers-0.2.2-dev.17.zip",
+     "size": 28670
     }
    },
    "update_check": "ok"
@@ -274,7 +278,7 @@
    "id": "fast_eggs",
    "title": "Fast Eggs (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Eggs hatch in about a quarter of the steps, as in Crystal Legacy. Unofficial port of Pokémon Crystal Legacy.",
    "categories": [
     "QOL"
@@ -292,15 +296,15 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/fast_eggs/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "fast_eggs-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/fast_eggs-0.2.2-dev.15.zip",
-     "size": 3497
+     "name": "fast_eggs-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/fast_eggs-0.2.2-dev.17.zip",
+     "size": 3498
     }
    },
    "update_check": "ok"
@@ -310,7 +314,7 @@
    "id": "legacy_hard_mode",
    "title": "Legacy Hard Mode (dev)",
    "author": "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl",
-   "version": "0.2.2-dev.15",
+   "version": "0.2.2-dev.17",
    "summary": "Crystal Legacy's Hard Mode: level caps that rise with your badges, Set style and no items in trainer battles. Each rule can be toggled. Unofficial port of Pokemon Crystal Legacy.",
    "categories": [
     "DIFFICULTY"
@@ -330,14 +334,14 @@
    "conflicts": [],
    "description_url": "https://raw.githubusercontent.com/leonardwohl/crystal-legacy-gen1recomp/main/mods/legacy_hard_mode/README.md",
    "latest": {
-    "version": "0.2.2-dev.15",
+    "version": "0.2.2-dev.17",
     "tag": "dev",
     "name": "dev",
     "prerelease": true,
-    "published_at": "2026-11-06T15:25:30Z",
+    "published_at": "2026-11-06T16:30:57Z",
     "zip": {
-     "name": "legacy_hard_mode-0.2.2-dev.15.zip",
-     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/legacy_hard_mode-0.2.2-dev.15.zip",
+     "name": "legacy_hard_mode-0.2.2-dev.17.zip",
+     "url": "https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases/download/dev/legacy_hard_mode-0.2.2-dev.17.zip",
      "size": 4536
     }
    },
