@@ -10,6 +10,7 @@ The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still reproduces: P
 - Trainer AI: Mean Look is favoured when *your* Pokémon is badly poisoned (vanilla checked its own)
 - Trainer AI: Full Heal and Full Restore also end Nightmare
 - Magikarp lengths (Lake of Rage contest) are worked out on the full number, as intended; vanilla compared only half of it
+- Wild Magikarp sizes follow Crystal Legacy's rules: Magikarp over 5'3" are rare, and Lake of Rage's are usually 3' or longer (gen1recomp had no size filter at all). Toggle: MAGIKARP SIZES
 - Light Ball and Thick Club can't push Attack past 999
 - Hurting itself in confusion ignores held type-boosting items (vanilla boosted the hit when the chosen move's type matched the item)
 - The Glacier Badge always boosts Special Defense as well as Special Attack (vanilla's check depended on the boosted Special Attack's value)

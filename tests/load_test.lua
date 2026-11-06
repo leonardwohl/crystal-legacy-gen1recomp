@@ -151,6 +151,46 @@ local CHECKS = {
     T.eq(mm, 551, "fixes: Magikarp length compares the full value")
     _, _, mm = Specials.magikarpLength(0, 0)
     T.eq(mm, 190, "fixes: tiny Magikarp special case unchanged")
+    -- Wild Magikarp sizes: find DVs for a big, a small and a mid-sized fish
+    -- (OT ID 600), then drive Legacy's filter with fixed dice.
+    local filter = loader.exports.crystal_legacy_fixes and loader.exports.crystal_legacy_fixes.magikarpFilter
+    T.eq(type(filter), "function", "fixes: Magikarp size filter exported")
+    if filter then
+      local function dvsOf(w)
+        return { attack = math.floor(w / 4096) % 16, defense = math.floor(w / 256) % 16,
+                 speed = math.floor(w / 16) % 16, special = w % 16 }
+      end
+      local big, small, mid
+      for w = 0, 65535 do
+        local ft, inch = Specials.magikarpLength(600, w)
+        if not big and ft == 5 and inch >= 4 then big = dvsOf(w) end
+        if not small and ft < 3 then small = dvsOf(w) end
+        if not mid and ft == 4 then mid = dvsOf(w) end
+        if big and small and mid then break end
+      end
+      local function seq(list)
+        local i = 0
+        return function() i = i + 1 return list[math.min(i, #list)] end
+      end
+      local high, low = function() return 255 end, function() return 0 end
+      T.eq(filter(600, false, seq({ big, mid }), high), mid, "fixes: a 5'4\" Magikarp is re-rolled")
+      T.eq(filter(600, false, seq({ big, mid }), low), big, "fixes: ...except on the 5% skip")
+      T.eq(filter(600, true, seq({ small, mid }), high), mid, "fixes: Lake of Rage re-rolls one under 3'")
+      T.eq(filter(600, false, seq({ small, mid }), high), small, "fixes: small ones are fine elsewhere")
+      T.eq(filter(600, true, seq({ small, mid }), low), small, "fixes: Lake of Rage's 39% pass")
+      -- And wild Magikarp really go through it.
+      local Mon = require("src.battle.gen2.Mon")
+      loader.game = { save = { player = { id = 600 } }, world = { map = { id = "LAKE_OF_RAGE" } } }
+      local short = 0
+      for _ = 1, 200 do
+        local fish = Mon.new(data, "MAGIKARP", 10, { wild = true })
+        if fish and Specials.magikarpLength(600, Specials.dvWord(fish.dvs)) < 3 then short = short + 1 end
+      end
+      loader.game = nil
+      -- Unfiltered, about 35% of Magikarp are under 3' (~70 of 200); the
+      -- filter lets ~39% of those through (~28 of 200).
+      T.eq(short < 50, true, "fixes: wild Lake of Rage Magikarp are mostly 3' or longer (" .. short .. "/200 short)")
+    end
     -- Light Ball: 600 doubled is capped to 999, so it hits like a plain 999.
     local Damage = require("src.battle.gen2.Damage")
     local function hit(attack, doubled)

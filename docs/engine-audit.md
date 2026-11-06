@@ -58,7 +58,7 @@ its source. Ported fixes live in **Crystal Legacy: Bug Fixes**.
 | Redundant Fly / Dig check after the hit check (Lock-On, Mind Reader) | `effect_commands.asm` | ⛔ not ported: gen1recomp reproduces it, but Legacy's fix only fires for Nightmare / Transform / Curse / Mean Look on a locked-on target mid-Fly or Dig, and the effects are dispatched through a records registry a wrapper may not reach |
 | Day-Care resets exp to the level's minimum | `engine/pokemon/move_mon.asm` | ✅ in Quality of Life |
 | Magikarp length: the size table compared only the high byte | `engine/events/magikarp.asm` | ✅ |
-| Magikarp wild-encounter size filter (thresholds, Lake of Rage test) | `engine/battle/core.asm` | ➖ gen1recomp has no such filter at all; adding Legacy's would be new behaviour, possible later through `encounter.*` hooks |
+| Magikarp wild-encounter size filter (thresholds, Lake of Rage test) | `engine/battle/core.asm` | ✅ added (gen1recomp had no filter at all); toggle MAGIKARP SIZES |
 | Faint check repeats until nobody is left fainted | `engine/battle/core.asm` | ⛔ not ported: gen1recomp transcribes vanilla's single pass (`Battle:resolveFaints`); changing the battle loop needs a battle-flow test first |
 | Confusion self-damage ignores held-item boosts | `effect_commands.asm` | ✅ |
 | Light Ball / Thick Club doubling capped at 999 | `effect_commands.asm` | ✅ |

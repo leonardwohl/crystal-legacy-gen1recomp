@@ -52,6 +52,8 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
   end)
 end
 
+local OPT = function() return true end
+
 local function engine(mod, name, what)
   local ok, m = pcall(require, name)
   if ok and type(m) == "table" then return m end
@@ -134,6 +136,63 @@ local function fixMagikarp(mod)
   end
 end
 
+-- engine/battle/core.asm LoadEnemyMon .Magikarp, as Crystal Legacy fixes it
+-- (vanilla compared feet/inches against millimetre constants and inverted the
+-- Lake of Rage test). gen1recomp has no such filter at all, so this adds it:
+-- a wild Magikarp's DVs are re-rolled until its length passes. `byte` is
+-- Random (0-255); `percent` thresholds are the cart's own (`5 percent` = 12).
+local function magikarpFilter(Specials, otId, atLake, randomDVs, byte)
+  for _ = 1, 512 do
+    local dvs = randomDVs()
+    local feet, inches = Specials.magikarpLength(otId, Specials.dvWord(dvs))
+    local reroll = false
+    if feet == 5 then
+      if byte() < 12 then -- 5%: skip both size checks
+      elseif inches >= 4 then reroll = true -- 5'4" and up
+      elseif byte() < 50 then -- 20% - 1: skip the next check
+      elseif inches >= 3 then reroll = true -- 5'3"
+      end
+    end
+    -- Lake of Rage: 61% of the time, nothing under 3'0"
+    if not reroll and atLake and byte() >= 100 and feet < 3 then reroll = true end
+    if not reroll then return dvs end
+  end
+  return randomDVs()
+end
+
+local function fixMagikarpWild(mod)
+  local Mon = engine(mod, "src.battle.gen2.Mon", "wild Magikarp sizes")
+  local Specials = engine(mod, "src.script.gen2.Specials", "wild Magikarp sizes")
+  if not (Mon and Mon.new and Mon.randomDVs and Specials and Specials.magikarpLength
+          and Specials.dvWord) then return end
+  local function byte()
+    if love and love.math and love.math.random then return love.math.random(0, 255) end
+    return math.random(0, 255)
+  end
+  mod.exports.magikarpFilter = function(otId, atLake, randomDVs, rng)
+    return magikarpFilter(Specials, otId, atLake, randomDVs or Mon.randomDVs, rng or byte)
+  end
+  local new = Mon.new
+  Mon.new = function(data, species, level, opts, ...)
+    if species == "MAGIKARP" and type(opts) == "table" and opts.wild and opts.dvs == nil
+        and OPT("magikarpSizes") then
+      local game = mod.game
+      local save = game and game.save
+      local world = game and game.world
+      if save and save.player and save.player.id == nil and Mon.stampOT then
+        Mon.stampOT(save, {}) -- gives the player their trainer ID, as a catch would
+      end
+      local otId = save and save.player and save.player.id or 0
+      local atLake = world and world.map and world.map.id == "LAKE_OF_RAGE" or false
+      local o = {}
+      for k, v in pairs(opts) do o[k] = v end
+      o.dvs = magikarpFilter(Specials, otId, atLake, Mon.randomDVs, byte)
+      opts = o
+    end
+    return new(data, species, level, opts, ...)
+  end
+end
+
 local function fixAi(mod)
   -- engine/battle/ai/scoring.asm AI_Smart_MeanLook: test the PLAYER's toxic.
   local Ai = engine(mod, "src.battle.gen2.Ai", "AI scoring")
@@ -208,8 +267,17 @@ end
 return function(mod)
   local stats = { applied = 0, failed = 0 }
 
+  mod.options:define({
+    { key = "magikarpSizes", label = "MAGIKARP SIZES", type = "toggle", default = true },
+  })
+  OPT = function(key)
+    local v = mod.options:get(key)
+    if v == nil then return true end
+    return v
+  end
   fixCatching(mod)
   fixAi(mod)
   fixMagikarp(mod)
+  fixMagikarpWild(mod)
   mod.log:info("Crystal Legacy: Bug Fixes: %d patches applied, %d refused", stats.applied, stats.failed)
 end
