@@ -1,7 +1,7 @@
 {
   "id": "crystal_legacy_fixes",
   "name": "Legacy: Bug Fixes",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "api": 2,
   "games": [
     "crystal"

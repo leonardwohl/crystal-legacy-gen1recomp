@@ -1,7 +1,7 @@
 {
   "id": "crystal_legacy_ghost_dark",
   "name": "Legacy: Ghost/Dark Switch",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "api": 2,
   "games": [
     "gen2"

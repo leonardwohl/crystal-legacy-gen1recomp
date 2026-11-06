@@ -1,7 +1,7 @@
 {
   "id": "crystal_legacy_encounters",
   "name": "Legacy: Encounter Changes",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "api": 2,
   "games": [
     "crystal"
