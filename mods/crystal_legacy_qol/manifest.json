@@ -1,0 +1,22 @@
+{
+  "id": "crystal_legacy_qol",
+  "name": "Crystal Legacy: Quality of Life",
+  "version": "0.2.1",
+  "api": 2,
+  "games": [
+    "crystal"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "QOL",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "Crystal Legacy's quality-of-life touches: run with B, reuse Repels, sort the PACK with START, a quicker nurse, and a Day-Care that keeps your Pokémon's experience. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}

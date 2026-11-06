@@ -745,6 +745,272 @@ def build_rematches(ctx):
         "Red's rematch is part of Story Changes (it follows Crystal Legacy's Mewtwo event)"]
 
 
+# -------------------------------------------------------------- quality of life
+def _db_order(path):
+    out = []
+    for op, a in statements(path):
+        if op == "db" and a and a[0] not in ("NO_ITEM", "-1"):
+            out.extend(x for x in a if x)
+    return out
+
+
+def build_qol(ctx):
+    leg = ctx["legacy"]
+    std = textc.text_blocks(os.path.join(leg, "data/text/std_text.asm"))
+    common = textc.text_blocks(os.path.join(leg, "data/text/common_1.asm"))
+    data = {
+        # engine/events/std_scripts.asm PokecenterNurseScript, Legacy's short visit
+        "nurseScript": "2f:409c",
+        "text": {"take": std["NurseTakePokemonText"],
+                 "returned": std["NurseReturnPokemonShortText"],
+                 "repel": common["_UseAnotherRepelText"]},
+        # data/items/sorting_order.asm (ItemNameOrder): START in the PACK
+        "sortOrder": _db_order(os.path.join(leg, "data/items/sorting_order.asm")),
+    }
+    body = '''
+  qolOptions(mod)
+  qolRunning(mod)
+  qolRepel(mod)
+  qolPackSort(mod)
+  qolNurse(mod, stats)
+  qolDayCare(mod)'''
+    lines = [
+        "Hold B to run (walking at bike speed), and to surf faster",
+        "When a Repel wears off and you have another of the same kind, you're asked "
+        "\"Use another?\"",
+        "START in the PACK sorts your items into Crystal Legacy's order",
+        "After your first visit, the Pokémon Center nurse skips her speech and heals "
+        "straight away",
+        "The Day-Care keeps the experience your Pokémon earned (vanilla throws away "
+        "everything past its current level's minimum)",
+        "Each change can be switched off in the mod's options",
+    ]
+    return data, body, lines
+
+
+QOL_RUNTIME = r"""
+local QOL_OPTIONS = {
+  { key = "running", label = "RUN WITH B", type = "toggle", default = true },
+  { key = "repel", label = "REUSE REPEL PROMPT", type = "toggle", default = true },
+  { key = "packSort", label = "START SORTS PACK", type = "toggle", default = true },
+  { key = "nurse", label = "QUICK NURSE", type = "toggle", default = true },
+  { key = "dayCareExp", label = "DAY-CARE KEEPS EXP", type = "toggle", default = true },
+}
+local OPT
+
+local function qolOptions(mod)
+  mod.options:define(QOL_OPTIONS)
+  OPT = function(key)
+    local v = mod.options:get(key)
+    if v == nil then return true end
+    return v
+  end
+end
+
+local function engine(mod, name, what)
+  local ok, m = pcall(require, name)
+  if ok and type(m) == "table" then return m end
+  mod.log:warn("%s not found; %s disabled", name, what)
+  return nil
+end
+
+-- engine/overworld/player_movement.asm .HandleWalkAndRun / .FastSurfCheck:
+-- B held on foot or on water takes the bike's step (half the frames).
+local function qolRunning(mod)
+  mod.hooks:wrap("movement.speed", function(nextFn, frames, ctx)
+    frames = nextFn(frames, ctx)
+    if not OPT("running") or type(ctx) ~= "table" or ctx.onBike then return frames end
+    local input = ctx.input
+    if input and input.isDown and input:isDown("b") then
+      return math.max(1, math.floor((tonumber(frames) or 16) / 2))
+    end
+    return frames
+  end)
+end
+
+-- engine/overworld/events.asm DoRepelStep + engine/events/repel.asm
+-- UseAnotherRepelScript: if the bag still holds the kind just used, ask.
+local function qolRepel(mod)
+  local World = engine(mod, "src.world.gen2.World", "the Repel prompt")
+  if not (World and World.useRepel and World.repelWoreOff) then return end
+  local useRepel, woreOff = World.useRepel, World.repelWoreOff
+  World.useRepel = function(self, itemId, ...)
+    local result = useRepel(self, itemId, ...)
+    if result == "repel_used" then mod.save:set("repelType", itemId) end
+    return result
+  end
+  World.repelWoreOff = function(self, ...)
+    local save = self.game and self.game.save
+    local kind = mod.save:get("repelType", nil)
+    local have = save and save.inventory and kind and (save.inventory[kind] or 0) > 0
+    if not (OPT("repel") and have and self.askYesNo) then return woreOff(self, ...) end
+    local items = self.game.data and self.game.data.items
+    local name = (items and items[kind] and items[kind].name) or kind
+    local text = DATA.text.repel:gsub("{STRBUF}", function() return name end)
+    self:showText(text, function()
+      self:askYesNo(function(yes)
+        if not yes then return end
+        -- RepelEffect / UseRepel, run straight from the field: the counter is
+        -- zero by now, so this is a fresh Repel.
+        local r = useRepel(self, kind)
+        if r ~= "repel_used" then
+          -- World:useRepel refuses while a box is up; apply it the same way.
+          save.repelSteps = ({ REPEL = 100, SUPER_REPEL = 200, MAX_REPEL = 250 })[kind] or 100
+          local left = (save.inventory[kind] or 1) - 1
+          save.inventory[kind] = left > 0 and left or nil
+        end
+      end)
+    end, true)
+  end
+end
+
+-- engine/items/switch_items.asm SortItemsInBag: START puts the bag in
+-- ItemNameOrder (each pocket sorts within itself, since a pocket is a view
+-- of the one list).
+local function sortBag(save)
+  local order = save and save.bagOrder
+  if type(order) ~= "table" then return false end
+  local rank = {}
+  for i, id in ipairs(DATA.sortOrder) do rank[id] = rank[id] or i end
+  local pos = {}
+  for i, id in ipairs(order) do pos[id] = i end
+  table.sort(order, function(a, b)
+    local ra, rb = rank[a] or math.huge, rank[b] or math.huge
+    if ra ~= rb then return ra < rb end
+    return pos[a] < pos[b]
+  end)
+  return true
+end
+
+local function qolPackSort(mod)
+  local PackMenu = engine(mod, "src.ui.gen2.PackMenu", "Pack sorting")
+  if not (PackMenu and PackMenu.update) then return end
+  local update = PackMenu.update
+  PackMenu.update = function(self, dt, ...)
+    local input = self.game and self.game.input
+    if OPT("packSort") and input and input.wasPressed and input:wasPressed("start")
+        and not (self.qtyState or self.switching or self.message or self.confirm
+                 or self.submenu) then
+      if self.save and self.save.inventory then
+        local Bag = require("src.inventory.Bag")
+        Bag.order(self.save, self.bagData)
+        if sortBag(self.save) then
+          self:rebuild()
+          if self.playSfxTwice then self:playSfxTwice("Sfx_SwitchPokemon") end
+        end
+      end
+      return
+    end
+    return update(self, dt, ...)
+  end
+end
+
+-- PokecenterNurseScript, Crystal Legacy's way: the full welcome once, then
+-- "OK, may I see your POKéMON?", the heal, and a one-line goodbye.
+local function qolNurse(mod, stats)
+  local key = DATA.nurseScript
+  local scripts = mod.content.map_scripts
+  local root = scripts:get(key)
+  if not root then
+    mod.log:info("nurse script %s not in this dataset; quick nurse skipped", key)
+    return
+  end
+  local healKey
+  for _, row in ipairs(root or {}) do
+    if row.op == "sjump" then healKey = row.script end
+  end
+  local heal = healKey and scripts:get(healKey)
+  -- The yes branch, from the first pause to the turn back to the player.
+  local from, to
+  for i, row in ipairs(heal or {}) do
+    if not from and row.op == "pause" then from = i end
+    if from and row.op == "checkphonecall" then to = i - 1 break end
+  end
+  if not (root and from and to) then
+    mod.log:warn("nurse script %s not in the expected shape; quick nurse skipped", key)
+    stats.failed = stats.failed + 1
+    return
+  end
+  local NS = "crystal_legacy_qol:nurse"
+  local function reg(kind, id, value)
+    local ok, err = pcall(mod.content[kind].register, mod.content[kind], id, value)
+    if ok then stats.applied = stats.applied + 1 else
+      stats.failed = stats.failed + 1
+      mod.log:warn("%s %s: %s", kind, id, tostring(err))
+    end
+  end
+  reg("text", NS .. ":take", DATA.text.take)
+  reg("text", NS .. ":returned", DATA.text.returned)
+  local copy = function(t)
+    local out = {}
+    for k, v in pairs(t) do out[k] = v end
+    return out
+  end
+  local full = {}
+  for i, row in ipairs(root) do full[i] = copy(row) end
+  reg("map_scripts", NS .. ":full", full)
+  reg("map_scripts", NS .. ":bye", {
+    { op = "opentext" }, { op = "writetext", text = NS .. ":returned" },
+    { op = "pause", frames = 40 }, { op = "closetext" }, { op = "end" },
+  })
+  local quick = {
+    { op = "opentext" }, { op = "writetext", text = NS .. ":take" },
+    { op = "pause", frames = 40 }, { op = "closetext" },
+  }
+  for i = from, to do quick[#quick + 1] = copy(heal[i]) end
+  -- The Pokerus check vanilla runs after healing (and its phone-call guards).
+  for i = to + 1, #heal do
+    local row = copy(heal[i])
+    if row.op == "farwritetext" or row.op == "writetext" then
+      quick[#quick + 1] = { op = "sjump", script = NS .. ":bye" }
+      break
+    end
+    if row.op == "iftrue" and row.script ~= nil and heal[i - 1]
+        and heal[i - 1].op ~= "special" then
+      row.script = NS .. ":bye"
+    end
+    quick[#quick + 1] = row
+  end
+  reg("map_scripts", NS .. ":quick", quick)
+  mod.content.commands:register(NS .. ":visit", function()
+    if OPT("nurse") and mod.save:get("nurseWelcomed", false) then return 3 end
+    mod.save:set("nurseWelcomed", true)
+    return nil
+  end)
+  local ok, err = pcall(scripts.override, scripts, key, {
+    { op = "modcommand", verb = NS .. ":visit" },
+    { op = "sjump", script = NS .. ":full" },
+    { op = "sjump", script = NS .. ":quick" },
+  })
+  if ok then stats.applied = stats.applied + 1 else
+    stats.failed = stats.failed + 1
+    mod.log:warn("nurse script: %s", tostring(err))
+  end
+end
+
+-- engine/pokemon/move_mon.asm RetrieveBreedmon: Legacy keeps the stored exp
+-- (capped at level 100's) instead of resetting it to the new level's minimum.
+local function qolDayCare(mod)
+  local Breeding = engine(mod, "src.core.gen2.Breeding", "Day-Care exp")
+  if not (Breeding and Breeding.withdraw and Breeding.side) then return end
+  local withdraw = Breeding.withdraw
+  Breeding.withdraw = function(data, save, which, ...)
+    local slot = Breeding.side(save, which)
+    local earned = slot and slot.mon and slot.mon.experience
+    local ok, mon, price = withdraw(data, save, which, ...)
+    if ok and OPT("dayCareExp") and type(mon) == "table" and type(earned) == "number"
+        and earned > (mon.experience or 0) then
+      local Mon = require("src.battle.gen2.Mon")
+      local def = data and data.pokemon and data.pokemon[mon.species]
+      local growth = Mon.growthFor(data, def and def.growthRate)
+      mon.experience = math.min(earned, Mon.experienceForLevel(growth, Mon.MAX_LEVEL))
+    end
+    return ok, mon, price
+  end
+end
+"""
+
+
 POKEMON_RT = r"""
 local function copyT(v)
   if type(v) ~= "table" then return v end
@@ -839,6 +1105,12 @@ MODS = [
      "runtime": REMATCH_RUNTIME, "optional_dependencies": ["crystal_legacy_trainers"],
      "summary": "Rematch every gym leader after the Elite Four, and the Elite Four "
                 "themselves once you have all 16 badges."},
+    {"id": "crystal_legacy_qol", "name": "Crystal Legacy: Quality of Life",
+     "category": "QOL", "games": ["crystal"], "build": build_qol,
+     "runtime": QOL_RUNTIME, "permissions": ["engine_internals"],
+     "summary": "Crystal Legacy's quality-of-life touches: run with B, reuse Repels, "
+                "sort the PACK with START, a quicker nurse, and a Day-Care that keeps "
+                "your Pokémon's experience."},
 ]
 
 

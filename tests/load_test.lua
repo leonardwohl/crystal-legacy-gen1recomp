@@ -116,6 +116,59 @@ Runtime.emit("game.ready", { game = { data = data } })
 local p, enc = data.pokemon, data.gen2Encounters
 local trainers = data.gen2Trainers.classes
 local CHECKS = {
+  crystal_legacy_qol = function()
+    -- Running: B halves the step on foot and on water, never on the bike.
+    local holdB = { isDown = function(_, b) return b == "b" end }
+    local speed = function(ctx) return Runtime.call("movement.speed", function(f) return f end, 16, ctx) end
+    T.eq(speed({ input = holdB }), 8, "qol: B runs at bike speed")
+    T.eq(speed({ input = holdB, surfing = true }), 8, "qol: B surfs faster")
+    T.eq(speed({ input = holdB, onBike = true }), 16, "qol: bike untouched")
+    T.eq(speed({ input = { isDown = function() return false end } }), 16, "qol: walking without B")
+    -- START in the PACK sorts the one bag list into ItemNameOrder.
+    local PackMenu = require("src.ui.gen2.PackMenu")
+    local save = { inventory = { POTION = 2, POKE_BALL = 3, REPEL = 1 },
+      bagOrder = { "REPEL", "POTION", "POKE_BALL" } }
+    local rebuilt = false
+    PackMenu.update({ game = { input = { wasPressed = function(_, b) return b == "start" end } },
+      save = save, bagData = data, rebuild = function() rebuilt = true end })
+    T.eq(save.bagOrder[1], "POKE_BALL", "qol: START sorts the PACK (balls first)")
+    T.eq(save.bagOrder[2], "POTION", "qol: then potions")
+    T.eq(rebuilt, true, "qol: list redrawn after sorting")
+    -- Day-Care: the exp past the new level's threshold survives the withdraw.
+    local Mon = require("src.battle.gen2.Mon")
+    local Breeding = require("src.core.gen2.Breeding")
+    local mon = Mon.new(data, "CHIKORITA", 10, {})
+    if mon then
+      local growth = Mon.growthFor(data, data.pokemon.CHIKORITA.growthRate)
+      mon.experience = Mon.experienceForLevel(growth, 11) + 50
+      local dsave = { player = { money = 10000 }, party = {} }
+      Breeding.dayCare(dsave).man.mon = mon
+      local ok, back = Breeding.withdraw(data, dsave, "man")
+      T.eq(ok and back.level, 11, "qol: Day-Care levels the mon up")
+      T.eq(ok and back.experience, Mon.experienceForLevel(growth, 11) + 50,
+        "qol: Day-Care keeps the extra exp")
+    end
+    -- Nurse: the full welcome the first time, the short version after.
+    if data.gen2Scripts["2f:409c"] then
+      local Vm = require("src.script.gen2.Vm")
+      local Events = require("src.world.gen2.Events")
+      local function visit()
+        local seen = {}
+        local vm = Vm.new(data.gen2Scripts, data.gen2Text, Events.new(), {
+          showText = function(b, onDone) seen[#seen + 1] = tostring(b) if onDone then onDone() end end,
+          yesorno = function(f) f(false) end,
+          commands = data.commands,
+        })
+        vm:start("2f:409c")
+        for _ = 1, 300 do if vm:running() then vm:update() else break end end
+        return table.concat(seen, " | ")
+      end
+      local first, second = visit(), visit()
+      T.eq(first:find("may I see", 1, true), nil, "qol: first visit is vanilla's welcome")
+      T.eq(second:find("may I see", 1, true) ~= nil, true, "qol: later visits are quick")
+      T.eq(second:find("fully healed", 1, true) ~= nil, true, "qol: quick visit returns the party")
+    end
+  end,
   crystal_legacy_pokemon = function()
     if not loader.mods.fast_eggs then
       T.eq(p.CHIKORITA.eggSteps, 20, "pokemon: leaves egg steps to Fast Eggs")
