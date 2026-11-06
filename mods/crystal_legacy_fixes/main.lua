@@ -90,6 +90,50 @@ local function fixCatching(mod)
   end
 end
 
+-- engine/events/magikarp.asm CalcMagikarpLength: Legacy fixes .BCLessThanDE
+-- (it compared only the high bytes, `ret c / ret nc`), so the length table is
+-- walked on the full 16-bit value. Same transcription as gen1recomp's
+-- Specials.magikarpLength otherwise.
+local function rrc(x) return math.floor(x / 2) + (x % 2) * 128 end
+local function xorByte(a, b)
+  local out, bit = 0, 1
+  for _ = 1, 8 do
+    if (a % 2) ~= (b % 2) then out = out + bit end
+    a, b, bit = math.floor(a / 2), math.floor(b / 2), bit * 2
+  end
+  return out
+end
+
+local function fixMagikarp(mod)
+  local Specials = engine(mod, "src.script.gen2.Specials", "Magikarp lengths")
+  if not (Specials and Specials.magikarpLength and Specials.MAGIKARP_LENGTHS) then return end
+  Specials.magikarpLength = function(otId, dvWord)
+    otId = (otId or 0) % 65536
+    dvWord = (dvWord or 0) % 65536
+    local b = xorByte(rrc(math.floor(otId / 256)), rrc(rrc(math.floor(dvWord / 256))))
+    local c = xorByte(rrc(otId % 256), rrc(rrc(dvWord % 256)))
+    local bc = b * 256 + c
+    local mm
+    if b == 0 and c < 10 then
+      mm = bc + 190
+    else
+      local index, de = 2, 0
+      for _, row in ipairs(Specials.MAGIKARP_LENGTHS) do
+        de = row[1]
+        if bc < de then
+          mm = 100 * index + (math.floor(((bc - de) % 65536) / row[2]) % 256)
+          break
+        end
+        index = index + 1
+      end
+      if not mm then mm = ((bc - de) % 65536) + 1600 end
+    end
+    mm = mm % 65536
+    local inches = math.floor(mm * 10 / 254) % 256
+    return math.floor(inches / 12), inches % 12, mm
+  end
+end
+
 local function fixAi(mod)
   -- engine/battle/ai/scoring.asm AI_Smart_MeanLook: test the PLAYER's toxic.
   local Ai = engine(mod, "src.battle.gen2.Ai", "AI scoring")
@@ -102,6 +146,47 @@ local function fixAi(mod)
   end
   -- engine/battle/ai/items.asm AI_HealStatus: also clear SUBSTATUS_NIGHTMARE.
   local Battle = engine(mod, "src.battle.gen2.Battle", "AI items")
+  -- engine/battle/effect_commands.asm HitConfusion: Legacy's
+  -- ConfusionDamageCalc leaves held items out; vanilla's DamageCalc boosted
+  -- the self-hit when the chosen move's type matched a held type booster.
+  if Battle and Battle.confusionSelfHit and Battle.heldEffect then
+    local selfHit = Battle.confusionSelfHit
+    Battle.confusionSelfHit = function(self, mon, ...)
+      local own = rawget(self, "heldEffect")
+      local held = own or Battle.heldEffect
+      self.heldEffect = function(s, m, kind, ...)
+        if m == mon and kind == "damage" then return nil end
+        return held(s, m, kind, ...)
+      end
+      local results = { pcall(selfHit, self, mon, ...) }
+      self.heldEffect = own
+      if not results[1] then error(results[2], 0) end
+      return unpack(results, 2)
+    end
+  end
+  -- engine/battle/effect_commands.asm SpeciesItemBoost: Legacy caps the
+  -- Light Ball / Thick Club doubling at MAX_STAT_VALUE before the stats are
+  -- truncated; vanilla let it run past 999.
+  local Damage = engine(mod, "src.battle.gen2.Damage", "the Light Ball cap")
+  if Damage and Damage.calc and Damage.truncateStats then
+    local calc, truncate = Damage.calc, Damage.truncateStats
+    local capNext = false
+    Damage.calc = function(opts, ...)
+      local outer = capNext
+      capNext = type(opts) == "table" and opts.attackDoubled == true
+      local results = { pcall(calc, opts, ...) }
+      capNext = outer
+      if not results[1] then error(results[2], 0) end
+      return unpack(results, 2)
+    end
+    Damage.truncateStats = function(attack, defense, ...)
+      if capNext and type(attack) == "number" then
+        attack = math.min(Damage.MAX_STAT_VALUE or 999, attack)
+        capNext = false
+      end
+      return truncate(attack, defense, ...)
+    end
+  end
   -- engine/battle/core.asm BadgeStatBoosts: Legacy's push/pop af keeps the
   -- badge bits, so the Glacier Badge always boosts Special Defense too.
   if Battle and Battle.glacierBoostsSpDef then
@@ -125,5 +210,6 @@ return function(mod)
 
   fixCatching(mod)
   fixAi(mod)
+  fixMagikarp(mod)
   mod.log:info("Crystal Legacy: Bug Fixes: %d patches applied, %d refused", stats.applied, stats.failed)
 end

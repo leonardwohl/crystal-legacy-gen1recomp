@@ -144,6 +144,46 @@ local CHECKS = {
     Battle.enemyUseItem(fake, "FULL_HEAL")
     T.eq(vol.nightmare, nil, "fixes: AI Full Heal ends Nightmare")
     T.eq(Battle.glacierBoostsSpDef(300), true, "fixes: Glacier Badge always boosts Sp. Def")
+    -- OT ID 600, DVs 0 -> bc = $012c (300): the full compare stops at the 310
+    -- row (551 mm); vanilla's high-byte compare skips to the 710 row (553 mm).
+    local Specials = require("src.script.gen2.Specials")
+    local _, _, mm = Specials.magikarpLength(600, 0)
+    T.eq(mm, 551, "fixes: Magikarp length compares the full value")
+    _, _, mm = Specials.magikarpLength(0, 0)
+    T.eq(mm, 190, "fixes: tiny Magikarp special case unchanged")
+    -- Light Ball: 600 doubled is capped to 999, so it hits like a plain 999.
+    local Damage = require("src.battle.gen2.Damage")
+    local function hit(attack, doubled)
+      return Damage.calc({ level = 50, power = 80, moveType = "NORMAL",
+        types = data.type_chart.types, matchups = data.type_chart.matchups,
+        attacker = { attack = attack, types = { "ELECTRIC" } },
+        defender = { defense = 100, types = { "NORMAL" } },
+        attackDoubled = doubled, random = function() return 0 end })
+    end
+    T.eq(hit(600, true), hit(999, false), "fixes: Light Ball doubling capped at 999")
+    T.eq(hit(400, true), hit(800, false), "fixes: doubling below the cap unchanged")
+    -- Confusion self-hit: a held type booster matching the chosen move no
+    -- longer adds to it.
+    local function selfHit(item)
+      local mon = { level = 50, hp = 500, item = item,
+        stats = { attack = 150, defense = 100 } }
+      local fake = setmetatable({
+        data = data, stages = { player = {} }, screens = { player = {} },
+        sideOf = function() return "player" end,
+        battleBadgeBoosts = function() return {} end,
+        reflectOverflowFixed = function() return nil end,
+        moveDef = function() return { type = "FIRE", effect = "EFFECT_NORMAL_HIT" } end,
+        heldEffect = function(_, m, kind)
+          if m.item == "CHARCOAL" and kind == "damage" then return "HELD_FIRE_BOOST", 10 end
+        end,
+        emit = function() end,
+      }, { __index = Battle })
+      return Battle.confusionSelfHit(fake, mon, "EMBER")
+    end
+    local okText, boosted = pcall(selfHit, "CHARCOAL")
+    if okText then  -- needs the ROM's HurtItselfText (absent from the synthetic fixture)
+      T.eq(boosted, selfHit(nil), "fixes: confusion self-hit ignores Charcoal")
+    end
   end,
   crystal_legacy_qol = function()
     -- Running: B halves the step on foot and on water, never on the bike.

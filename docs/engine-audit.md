@@ -20,7 +20,7 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 | Trainer **class** DVs (gym leaders and others get better DVs) | `data/trainers/dvs.asm` | ✅ applied where a team has no DVs of its own | Trainer Changes |
 | Trainer classes no longer carry healing items | `data/trainers/attributes.asm` | ✅ | Trainer Changes |
 | King's Rock, Metal Coat, Dragon Scale, Up-Grade, Brick Piece are used like evolution stones | `engine/items/item_effects.asm`, `data/items/attributes.asm` | ✅ | Pokémon Changes |
-| Happiness: double from levelling, +9 from gym leaders, better haircuts and grooming | `data/events/happiness_{changes,probabilities}.asm` | ✅ changes; haircut odds 🔜 | Pokémon Changes |
+| Happiness: double from levelling, +9 from gym leaders, better haircuts and grooming | `data/events/happiness_{changes,probabilities}.asm` | ✅ happiness amounts. The odds table's edits only change which line the barber says (Legacy's new values never match the script's `ifequal 2/3`, so it always says "much happier"), so they're left out | Pokémon Changes |
 | Cut has a high critical-hit ratio | `data/moves/critical_hit_moves.asm` | ✅ | Pokémon Changes |
 | Metronome cannot call Explosion / Selfdestruct | `data/moves/metronome_exception_moves.asm` | ✅ | Pokémon Changes |
 | Obedience: the Zephyr Badge raises the obedience level to 16 | `engine/battle/effect_commands.asm` | ✅ | Pokémon Changes |
@@ -49,23 +49,24 @@ its source. Ported fixes live in **Crystal Legacy: Bug Fixes**.
 | Fast Ball (all flee-prone mons), Moon Ball (Moon Stone), Love Ball (opposite gender) | `item_effects.asm` | ✅ via gen1recomp's own `fixBugs` arms; the high-HP rounding quirk Legacy keeps is left alone |
 | Heavy Ball reads the wrong dex bank for three species | `item_effects.asm` | ➖ gen1recomp reads weights straight from the Pokédex |
 | A Transformed wild Pokémon is caught as Ditto | `item_effects.asm` | ➖ gen1recomp restores the species it was sent out as |
-| Held-item catch bonus never applied | `item_effects.asm` | 🔜 check whether any item carries it |
+| Held-item catch bonus never applied | `item_effects.asm` | ➖ no item in vanilla or Legacy carries `HELD_CATCH_CHANCE` |
 | AI: Mean Look checks the AI's own toxic instead of the player's | `engine/battle/ai/scoring.asm` | ✅ |
 | AI: Full Heal / Full Restore leave Nightmare | `engine/battle/ai/items.asm` | ✅ |
 | AI: Full Heal / Full Restore leave confusion | `ai/items.asm` | ➖ gen1recomp already clears it |
 | Counter / Mirror Coat answer stale damage after a non-damaging turn | `move_effects/{counter,mirror_coat}.asm` | ➖ gen1recomp only counts damage taken this turn |
 | "Has PP" check confused by PP Ups | `engine/battle/core.asm` | ➖ gen1recomp stores PP and PP Ups separately |
-| Redundant Fly / Dig check after the hit check (Lock-On, Mind Reader) | `effect_commands.asm` | 🔜 no such check found by name in gen1recomp; needs a behaviour test |
+| Redundant Fly / Dig check after the hit check (Lock-On, Mind Reader) | `effect_commands.asm` | ⛔ not ported: gen1recomp reproduces it, but Legacy's fix only fires for Nightmare / Transform / Curse / Mean Look on a locked-on target mid-Fly or Dig, and the effects are dispatched through a records registry a wrapper may not reach |
 | Day-Care resets exp to the level's minimum | `engine/pokemon/move_mon.asm` | ✅ in Quality of Life |
-| Magikarp length thresholds | `engine/events/magikarp.asm` | 🔜 gen1recomp keeps the bug (`Specials.lua`) |
-| Both Pokémon fainting at once | `engine/battle/core.asm` | 🔜 check |
-| Wild Pokémon's status lowers its stats on send-out | `core.asm` | 🔜 check |
-| Confusion self-damage ignores held-item boosts | `effect_commands.asm` | 🔜 check |
-| Boosted stats capped at 999 (Light Ball etc.) | `effect_commands.asm` | 🔜 check |
+| Magikarp length: the size table compared only the high byte | `engine/events/magikarp.asm` | ✅ |
+| Magikarp wild-encounter size filter (thresholds, Lake of Rage test) | `engine/battle/core.asm` | ➖ gen1recomp has no such filter at all; adding Legacy's would be new behaviour, possible later through `encounter.*` hooks |
+| Faint check repeats until nobody is left fainted | `engine/battle/core.asm` | ⛔ not ported: gen1recomp transcribes vanilla's single pass (`Battle:resolveFaints`); changing the battle loop needs a battle-flow test first |
+| Confusion self-damage ignores held-item boosts | `effect_commands.asm` | ✅ |
+| Light Ball / Thick Club doubling capped at 999 | `effect_commands.asm` | ✅ |
 | Psywave never deals 0 | `effect_commands.asm` | ➖ gen1recomp floors it at 1 for both sides |
-| Beat Up, Rage / AncientPower effect order | `effect_commands.asm`, `data/moves/effects.asm` | 🔜 check |
+| Beat Up's failure path (a link-battle desync in vanilla) | `effect_commands.asm` | ➖ no link battles here |
+| Status moves on an already-statused target name the status | `effect_commands.asm` | ➖ message only; the move fails either way |
 | Level 1 has 0 exp (Medium-Slow underflow) | `engine/pokemon/experience.asm` | ➖ gen1recomp clamps exp at 0 |
-| Breeding uses the party mon's DVs | `engine/pokemon/breeding.asm` | 🔜 check |
+| Egg / hatch picture uses the party mon's DVs | `engine/pokemon/breeding.asm` | ➖ presentation only (which Unown letter is drawn) |
 | Can't surf into an object | `engine/events/overworld.asm` | ➖ Crystal has gen1recomp's `surfOntoNpc` fix on |
 | Glacier Badge's Special Defense boost depends on the boosted Special Attack | `engine/battle/core.asm` | ✅ |
 
