@@ -592,6 +592,201 @@ local CHECKS = {
     for i = 1, math.min(#crashed, 10) do print("crash: " .. crashed[i]) end
     T.eq(#entries > 300, true, "story: smoke test found the map entry points (" .. #entries .. ")")
     T.eq(#crashed, 0, "story: every map entry point runs without a Lua error")
+
+    -- ---------------------------------------------------------- deep walk
+    -- Every Story entry point, three ways: answering YES to questions (first
+    -- menu option), answering NO (cancel), and with every event flag set (so
+    -- the "already done" arms run too). Each run must finish, must not hit a
+    -- command gen1recomp lacks, and every battle must find its trainer.
+    -- STORY_WALK=1 prints the full report.
+    local verbose = os.getenv("STORY_WALK") == "1"
+    local report = { stall = {}, crash = {}, noTrainer = {}, unknownOps = {}, badBytes = {} }
+    local function walk(key, variant)
+      local events = Events.new()
+      if variant == "allEvents" then
+        local get = events.get
+        events.get = function(self, id) return true end
+      end
+      -- A player who keeps the variant's answer for three questions, then
+      -- gives in: "ask again" loops (Elm won't take no for an answer) finish,
+      -- while a real infinite loop still never does.
+      local asked = 0
+      local function answer()
+        asked = asked + 1
+        local yes = variant ~= "no"
+        if asked > 3 then yes = not yes end
+        return yes
+      end
+      local battleMiss
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, events, {
+        showText = function(_, onDone) if onDone then onDone() end end,
+        waitButton = function(cb) cb() end,
+        holdStayed = function() return false end,
+        yesorno = function(f) f(answer()) end,
+        applyMovement = function(_, _, cb) if cb then cb() end end,
+        startBattle = function(t, w, done)
+          if not t and not w then battleMiss = true end
+          done("win")
+        end,
+        catchTutorial = function(_, _, cb) cb() end,
+        openMart = function(_, _, cb) cb() end,
+        trainerApproach = function(cb) cb() end,
+        openMenu = function(_, _, cb) cb(answer() and 1 or 0) end,
+        checkPokeMail = function(_, cb) cb(answer() and 1 or 0) end,
+        npcTrade = function(_, cb) cb() end,
+        elevator = function(_, cb) cb(false) end,
+        phoneCall = function(_, cb) cb() end,
+        hallOfFame = function(cb) cb() end,
+        credits = function(cb) cb() end,
+        readVar = function() return 0 end,
+        lookupTrainer = function(c, m) return Trainers.lookup(data.gen2Trainers, c, m) end,
+        specialOrder = data.gen2Constants and data.gen2Constants.specialOrder,
+        commands = data.commands,
+        eventTables = data.gen2EventTables,
+        save = function() return {} end,
+      })
+      vm:start(key)
+      local steps = 0
+      while vm:running() and steps < 5000 do vm:update() steps = steps + 1 end
+      local tag = key .. " [" .. variant .. "]"
+      if vm:running() then report.stall[#report.stall + 1] = tag end
+      if battleMiss then report.noTrainer[#report.noTrainer + 1] = tag end
+      for op, n in pairs(vm.unknownOps or {}) do
+        report.unknownOps[op] = (report.unknownOps[op] or 0) + n
+      end
+      for code, n in pairs(vm.badBytes or {}) do
+        report.badBytes[tostring(code)] = (report.badBytes[tostring(code)] or 0) + n
+      end
+    end
+    for _, key in ipairs(entries) do
+      for _, variant in ipairs({ "yes", "no", "allEvents" }) do
+        local ok, err = pcall(walk, key, variant)
+        if not ok then report.crash[#report.crash + 1] = key .. " [" .. variant .. "]: " .. tostring(err) end
+      end
+    end
+
+    -- Static references across every Story row and Story map.
+    local refs = {}
+    local function bad(what) refs[#refs + 1] = what end
+    local classByIndex, itemByIndex, monByIndex = {}, {}, {}
+    for id, c in pairs(data.gen2Trainers.classes or {}) do
+      if c.index then classByIndex[c.index] = c end
+    end
+    for id, it in pairs(data.items or {}) do
+      if type(it) == "table" and it.index then itemByIndex[it.index] = id end
+    end
+    for id, mon in pairs(data.pokemon or {}) do
+      if type(mon) == "table" and (mon.dexNumber or mon.index) then monByIndex[mon.dexNumber or mon.index] = id end
+    end
+    local function exists(kind, key)
+      if key == nil then return true end
+      if kind == "text" then return data.gen2Text[key] ~= nil end
+      if kind == "movement" then return data.gen2Scripts.movements and data.gen2Scripts.movements[key] ~= nil end
+      return data.gen2Scripts[key] ~= nil
+    end
+    for key, rows in pairs(data.gen2Scripts) do
+      if type(key) == "string" and key:match("^[89a-f]%x:") then
+        for i, r in ipairs(rows) do
+          local at = key .. "#" .. i .. " " .. tostring(r.op)
+          if not exists("script", r.script) then bad(at .. ": script " .. tostring(r.script)) end
+          for _, f in ipairs({ "text", "winText", "lossText", "yesText", "noText" }) do
+            if type(r[f]) == "string" and not exists("text", r[f]) then bad(at .. ": " .. f .. " " .. r[f]) end
+          end
+          if type(r.movement) == "string" and not exists("movement", r.movement) then
+            bad(at .. ": movement " .. r.movement)
+          end
+          if r.op == "loadtrainer" and type(r.class) == "number" then
+            local c = classByIndex[r.class]
+            if not c then bad(at .. ": no trainer class " .. r.class)
+            elseif not (c.trainers and c.trainers[r.member or 1]) then
+              bad(at .. ": " .. tostring(c.id) .. " has no member " .. tostring(r.member))
+            end
+          end
+          if (r.op == "givepoke" or r.op == "loadwildmon") and type(r.species) == "number"
+              and next(monByIndex) and not monByIndex[r.species] then
+            bad(at .. ": no species #" .. r.species)
+          end
+          if (r.op == "verbosegiveitem" or r.op == "giveitem" or r.op == "takeitem" or r.op == "checkitem")
+              and type(r.item) == "number" and r.item ~= 0 and not itemByIndex[r.item] then
+            bad(at .. ": no item $" .. string.format("%02x", r.item))
+          end
+        end
+      end
+    end
+    local varSlots = {}
+    for _, rows in pairs(data.gen2Scripts) do
+      for _, r in ipairs(type(rows) == "table" and rows or {}) do
+        if type(r) == "table" and r.op == "variablesprite" then
+          local slot = r.slot or (r.args and r.args[1])
+          if slot then varSlots[slot] = true end
+        end
+      end
+    end
+    for id, m in pairs(data.gen2Maps) do
+      local story = false
+      for _, o in ipairs(m.objects or {}) do
+        if tostring(o.scriptKey):match("^[89a-f]%x:") then story = true end
+      end
+      if story then
+        for _, o in ipairs(m.objects or {}) do
+          local sp = o.sprite
+          -- $F0 up are variable sprites: fine when some script fills the slot.
+          local var = type(sp) == "number" and ((sp >= 0xf0 and varSlots[sp - 0xf0])
+            -- $E0 / $E1: GetMonSprite's Day-Care Pokemon (Route 34)
+            or sp == 0xe0 or sp == 0xe1)
+          if sp and not var and not data.gen2Sprites[sp] then bad(id .. ": object sprite " .. tostring(sp)) end
+        end
+        for _, w in ipairs(m.warps or {}) do
+          if w.destMap and not data.gen2Maps[w.destMap] then bad(id .. ": warp to " .. w.destMap) end
+        end
+        -- Every event's script, and every trainer NPC's lines and team.
+        local function ev(what, key)
+          if key and not exists("script", key) then bad(id .. ": " .. what .. " script " .. tostring(key)) end
+        end
+        for i, o in ipairs(m.objects or {}) do
+          ev("object " .. i, o.scriptKey)
+          local t = o.trainer
+          if t then
+            ev("trainer " .. i, t.scriptKey)
+            for _, f in ipairs({ "seenText", "winText", "lossText" }) do
+              if type(t[f]) == "string" and not exists("text", t[f]) then
+                bad(id .. ": trainer " .. i .. " " .. f .. " " .. t[f])
+              end
+            end
+            local c = type(t.class) == "number" and classByIndex[t.class]
+            if type(t.class) == "number" and not c then
+              bad(id .. ": trainer " .. i .. " class " .. t.class)
+            elseif c and not (c.trainers and c.trainers[t.member or 1]) then
+              bad(id .. ": trainer " .. i .. " " .. tostring(c.id) .. " has no member " .. tostring(t.member))
+            end
+          end
+        end
+        for i, e in ipairs(m.bgEvents or {}) do ev("bg " .. i, e.scriptKey) end
+        for i, e in ipairs(m.coordEvents or {}) do ev("coord " .. i, e.scriptKey) end
+        for i, e in ipairs(m.callbacks or {}) do ev("callback " .. i, e.scriptKey) end
+        for n, sc in pairs(m.sceneScripts or {}) do ev("scene " .. tostring(n), sc.scriptKey) end
+      end
+    end
+
+    local unknown = {}
+    for op, n in pairs(report.unknownOps) do unknown[#unknown + 1] = op .. " x" .. n end
+    table.sort(unknown)
+    local badB = {}
+    for c, n in pairs(report.badBytes) do badB[#badB + 1] = c .. " x" .. n end
+    local function dump(label, list, limit)
+      for i = 1, math.min(#list, verbose and #list or (limit or 8)) do print(label .. ": " .. list[i]) end
+    end
+    table.sort(report.stall) table.sort(report.noTrainer) table.sort(refs)
+    dump("walk crash", report.crash) dump("walk stall", report.stall)
+    dump("walk no trainer", report.noTrainer) dump("unknown op", unknown)
+    dump("bad bytes", badB) dump("bad ref", refs)
+    print(("story walk: %d entry points x 3; %d stalls, %d crashes, %d battles without a trainer, %d unknown ops, %d bad refs")
+      :format(#entries, #report.stall, #report.crash, #report.noTrainer, #unknown, #refs))
+    T.eq(#report.crash, 0, "story walk: no Lua errors on any branch")
+    T.eq(#report.stall, 0, "story walk: every branch finishes")
+    T.eq(#report.noTrainer, 0, "story walk: every battle finds its trainer")
+    T.eq(#unknown, 0, "story walk: no command gen1recomp lacks")
+    T.eq(#refs, 0, "story walk: every trainer / item / species / sprite / warp exists")
     -- Move Reminder: talk to the second NPC in the Move Deleter's house with a
     -- level-20 Chikorita that has forgotten Razor Leaf, and learn it back.
     do
