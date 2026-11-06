@@ -19,7 +19,8 @@ toggled in the mod's options.
     vitamins do nothing on a fainted Pokémon;
   - the PC and the Day-Care won't take a fainted Pokémon;
   - whiting out sends you back to the title screen, to carry on from your last save;
-  - the first rival fight in Cherrygrove is a real battle: losing it is a whiteout.
+  - the first rival fight in Cherrygrove is a real battle: the rival gloats, then
+    losing it is a whiteout.
 
 ## Cap schedule (from Crystal Legacy)
 

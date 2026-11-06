@@ -278,17 +278,34 @@ return function(mod)
   -- rival fight is no longer BATTLETYPE_CANLOSE, so losing it is a real
   -- whiteout -- and a Hardcore whiteout resets the game. (Legacy also makes
   -- it Set style with no items; the trainer-battle rules above already do.)
+  --
+  -- The battle itself still starts as CANLOSE, because that is what makes
+  -- LostBattle print the rival's winning line; only the world's copy of the
+  -- type is flipped to normal, so the loss whites out. Once the line is up,
+  -- the battle's copy flips too, so the battle screen plays the whiteout fade.
   local BATTLETYPE_CANLOSE, BATTLETYPE_NORMAL = 1, 0
+  local function hardcoreRival(trainer, battleType)
+    local class = type(trainer) == "table" and (trainer.classId or trainer.class)
+    return hardcore() and battleType == BATTLETYPE_CANLOSE and class == "RIVAL1"
+  end
   if World and World.startBattle then
     local startBattle = World.startBattle
     World.startBattle = function(self, opts, ...)
-      local t = type(opts) == "table" and opts.trainer
-      local class = type(t) == "table" and (t.classId or t.class)
-      if hardcore() and opts and opts.battleType == BATTLETYPE_CANLOSE
-          and class == "RIVAL1" then
-        opts.battleType = BATTLETYPE_NORMAL
-      end
-      return startBattle(self, opts, ...)
+      local rival = type(opts) == "table" and hardcoreRival(opts.trainer, opts.battleType)
+      local results = { startBattle(self, opts, ...) }
+      -- World:startBattle's onDone reads opts.battleType when the battle ends.
+      if rival then opts.battleType = BATTLETYPE_NORMAL end
+      return unpack(results)
+    end
+  end
+  local okBattle, Battle = pcall(require, "src.battle.gen2.Battle")
+  if okBattle and Battle and Battle.lostBattle then
+    local lostBattle = Battle.lostBattle
+    Battle.lostBattle = function(self, ...)
+      local rival = hardcoreRival(self.trainer, self.battleType)
+      local results = { lostBattle(self, ...) }
+      if rival then self.battleType = BATTLETYPE_NORMAL end
+      return unpack(results)
     end
   end
 

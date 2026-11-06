@@ -428,6 +428,16 @@ local CHECKS = {
     loader.modOptions.legacy_hard_mode = { hardcore = true }
     T.eq(rivalType("RIVAL1"), 0, "hardcore: Cherrygrove rival is a real battle")
     T.eq(rivalType("YOUNGSTER"), 1, "hardcore: other can-lose battles untouched")
+    -- The rival still gloats: LostBattle runs as CANLOSE (printing his
+    -- winning line), then the battle turns normal so the whiteout fade plays.
+    local Battle = require("src.battle.gen2.Battle")
+    local printed
+    local fakeBattle = { trainer = { classId = "RIVAL1" }, battleType = 1,
+      emit = function() end, endBattle = function() end,
+      printWinLossText = function(_, which) printed = which end }
+    Battle.lostBattle(fakeBattle)
+    T.eq(printed, "lose", "hardcore: the rival's winning line still prints")
+    T.eq(fakeBattle.battleType, 0, "hardcore: then the loss is a real whiteout")
     hsave = { party = party() }
     local before = hsave.party
     World.healParty({ game = { save = hsave, data = data } })
