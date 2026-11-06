@@ -46,8 +46,15 @@ left to existing gen1recomp mods.
 3. Install the mods you want from the list, and enable them for Crystal. A new
    game is recommended.
 
+Add **only one** of the two. When two sources list the same mod, gen1recomp
+keeps the one from the source added first and hides the other, so a stable
+source added before the dev one keeps every card on the stable version. To
+switch channels, remove the old source first.
+
 Dev builds are versioned `<next patch>-dev.<build>` (e.g. `0.2.2-dev.17`), so
-each new one shows up as an update, and the next release supersedes them.
+each new one shows up as an update in Find mods, and the next release
+supersedes them. A mod's own update check (its GitHub releases) skips dev
+builds, so update dev builds from Find mods.
 
 ### By hand
 
