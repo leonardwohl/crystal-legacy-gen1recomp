@@ -123,16 +123,18 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - name: Write the dev feed (and the fixed-name zips it points at)
+        run: |
+          python3 tools/make_index.py --repo "$GITHUB_REPOSITORY" --tag dev \
+            --dist dist --out site/dev/data/index.json --prerelease --channel dev \
+            --alias-dir dist-alias
       - name: Publish the rolling dev prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete dev --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
-          gh release create dev dist/*.zip --repo "$GITHUB_REPOSITORY" --prerelease \
+          gh release create dev dist/*.zip dist-alias/*.zip --repo "$GITHUB_REPOSITORY" --prerelease \
             --target "$GITHUB_SHA" --title "Dev build $DEV" \
-            --notes "Rolling build of main at $GITHUB_SHA (run $DEV). For testing; installs as <next patch>-dev.$DEV."
-      - name: Update the dev feed
-        run: |
-          python3 tools/make_index.py --repo "$GITHUB_REPOSITORY" --tag dev \
-            --dist dist --out site/dev/data/index.json --prerelease --channel dev
-          bash tools/commit_feed.sh "Update dev mod feed to build $DEV [skip ci]"
+            --notes "Rolling build of main at $GITHUB_SHA (run $DEV). For testing; installs as <next patch>-dev.$DEV. The <id>-dev.zip files always hold the newest build."
+      - name: Commit the dev feed
+        run: bash tools/commit_feed.sh "Update dev mod feed to build $DEV [skip ci]"

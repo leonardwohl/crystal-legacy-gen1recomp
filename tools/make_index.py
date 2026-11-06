@@ -16,6 +16,7 @@ import datetime
 import glob
 import json
 import os
+import shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CREDIT = "TheSmithPlays & cRz Shadows (Crystal Legacy); port by leonardwohl"
@@ -29,7 +30,11 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--prerelease", action="store_true")
     ap.add_argument("--channel", default="stable")
+    ap.add_argument("--alias-dir", help="also write <id>-<tag>.zip copies here and point "
+                    "the feed at them, so a cached listing never names a deleted zip")
     a = ap.parse_args()
+    if a.alias_dir:
+        os.makedirs(a.alias_dir, exist_ok=True)
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     raw = "https://raw.githubusercontent.com/%s/main/" % a.repo
     mods, categories, games = [], set(), set()
@@ -43,6 +48,14 @@ def main():
         zip_name = os.path.basename(zip_path)
         version = zip_name[len(mod_id) + 1:-len(".zip")]
         title = man["name"] + (" (dev)" if a.channel == "dev" else "")
+        # The rolling dev release swaps its zips on every build, so a listing
+        # gen1recomp cached a day ago would name a zip that no longer exists
+        # (HTTP 404). A fixed name that always holds the newest build keeps
+        # every cached listing installable.
+        url_name = zip_name
+        if a.alias_dir:
+            url_name = "%s-%s.zip" % (mod_id, a.tag)
+            shutil.copyfile(zip_path, os.path.join(a.alias_dir, url_name))
         entry = {
             "folder": "%s@%s" % (a.repo.split("/")[0], mod_id),
             "id": mod_id,
@@ -65,9 +78,9 @@ def main():
                 "version": version, "tag": a.tag, "name": a.tag,
                 "prerelease": a.prerelease, "published_at": now,
                 "zip": {
-                    "name": zip_name,
+                    "name": url_name,
                     "url": "https://github.com/%s/releases/download/%s/%s"
-                           % (a.repo, a.tag, zip_name),
+                           % (a.repo, a.tag, url_name),
                     "size": os.path.getsize(zip_path),
                 },
             },
