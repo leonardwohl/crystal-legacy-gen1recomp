@@ -281,6 +281,24 @@ local CHECKS = {
     end
     for _, m in ipairs(missing) do print("missing: " .. m) end
     T.eq(#missing, 0, "story: every referenced script/text/movement exists")
+    -- Scene 0 is each map's first-visit cutscene (Elm's intro, Mr. Pokemon):
+    -- it must survive the build and point at Legacy's script.
+    for _, id in ipairs({ "ELMS_LAB", "MR_POKEMONS_HOUSE" }) do
+      local scenes = data.gen2Maps[id] and data.gen2Maps[id].sceneScripts
+      local zero = scenes and scenes[0]
+      if data.gen2Maps[id] and data.gen2Maps[id].objects and #data.gen2Maps[id].objects > 0 or real then
+        T.eq(zero and tostring(zero.scriptKey):match("^8%x:") ~= nil, true,
+          "story: " .. id .. " keeps scene 0 (first-visit cutscene)")
+      end
+    end
+    -- Every scene a story map ends up with points at Legacy's scripts.
+    local stale = 0
+    for _, id in ipairs({ "ELMS_LAB", "MR_POKEMONS_HOUSE", "AZALEA_TOWN", "POWER_PLANT" }) do
+      for _, sc in pairs((data.gen2Maps[id] or {}).sceneScripts or {}) do
+        if not tostring(sc.scriptKey):match("^8%x:") then stale = stale + 1 end
+      end
+    end
+    if real then T.eq(stale, 0, "story: no vanilla scene scripts left on story maps") end
     -- Legacy's new overworld sprites: registered, and their numbers named.
     for _, name in ipairs({ "SPRITE_ARCHER", "SPRITE_GIOVANNI", "SPRITE_MEWTWO", "SPRITE_MURKROW" }) do
       local rec = data.gen2Sprites and data.gen2Sprites[name]

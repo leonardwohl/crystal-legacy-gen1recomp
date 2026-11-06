@@ -176,7 +176,14 @@ def main():
               + list(MAPS.values()), cwd=a.engine).strip())
     dump = run(["luajit", "-e", 'package.path="./?.lua;"..package.path '
                 'local Json=require("src.link.Json") '
-                'io.write(Json.encode(dofile(%s)))' % json.dumps(story_lua)], cwd=a.engine)
+                # A table with a [0] key (sceneScripts: scene 0 is the "first
+                # visit" cutscene) would be encoded as a 1-based array and
+                # lose that entry, so such tables get string keys here;
+                # numberKeys() turns them back into numbers at load time.
+                'local function fix(t) if type(t)~="table" then return t end '
+                'local zero=rawget(t,0)~=nil local out={} '
+                'for k,v in pairs(t) do out[zero and tostring(k) or k]=fix(v) end return out end '
+                'io.write(Json.encode(fix(dofile(%s))))' % json.dumps(story_lua)], cwd=a.engine)
     story = json.loads(dump)
     swapped = 0
     for rows in story["scripts"].values():
@@ -508,6 +515,11 @@ return function(mod)
   -- (Every map exists in a real Crystal import; a test dataset may hold fewer.)
   each(maps, function(id, fields)
     if mod.content.maps:get(id) then
+      -- sceneScripts is keyed from 0 (a dictionary, which a patch merges),
+      -- so clear vanilla's first: a scene Legacy dropped must not survive.
+      if fields.sceneScripts then
+        patch(mod, "maps", id, { sceneScripts = mod.DELETE }, stats)
+      end
       patch(mod, "maps", id, fields, stats)
     else
       mod.log:info("map %s not in this dataset; skipped", id)

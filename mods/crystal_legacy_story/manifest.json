@@ -1,7 +1,7 @@
 {
   "id": "crystal_legacy_story",
   "name": "Crystal Legacy: Story Changes",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "api": 2,
   "games": [
     "crystal"

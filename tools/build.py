@@ -19,7 +19,7 @@ import textc  # noqa: E402
 from asm import const_values, statements  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 GAME_VERSION = ">=0.4.0 <0.5.0"
 GITHUB = "leonardwohl/crystal-legacy-gen1recomp"
 

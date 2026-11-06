@@ -482,8 +482,9 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 16402, scriptKey = "85:4012" },
-        { sceneId = 2, script = 16403, scriptKey = "85:4013" },
+        ["0"] = { sceneId = 0, script = 16401, scriptKey = "85:4011" },
+        ["1"] = { sceneId = 1, script = 16402, scriptKey = "85:4012" },
+        ["2"] = { sceneId = 2, script = 16403, scriptKey = "85:4013" },
       },
       warps = {
         {
@@ -610,7 +611,10 @@ local DATA = {
           y = 3,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 28536, scriptKey = "80:6f78" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 28482, scriptKey = "80:6f42" },
+        ["1"] = { sceneId = 1, script = 28536, scriptKey = "80:6f78" },
+      },
       warps = {
         {
           destGroup = 22,
@@ -1289,8 +1293,9 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 24189, scriptKey = "89:5e7d" },
-        { sceneId = 2, script = 24190, scriptKey = "89:5e7e" },
+        ["0"] = { sceneId = 0, script = 24185, scriptKey = "89:5e79" },
+        ["1"] = { sceneId = 1, script = 24189, scriptKey = "89:5e7d" },
+        ["2"] = { sceneId = 2, script = 24190, scriptKey = "89:5e7e" },
       },
       warps = {
         { destGroup = 4, destMap = "ECRUTEAK_CITY", destMapNum = 9, destWarp = 13, x = 9, y = 15 },
@@ -2150,7 +2155,10 @@ local DATA = {
           y = 13,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 24495, scriptKey = "86:5faf" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 24494, scriptKey = "86:5fae" },
+        ["1"] = { sceneId = 1, script = 24495, scriptKey = "86:5faf" },
+      },
       warps = {
         { destGroup = 7, destMap = "CERULEAN_CITY", destMapNum = 17, destWarp = 5, x = 4, y = 15 },
         { destGroup = 7, destMap = "CERULEAN_CITY", destMapNum = 17, destWarp = 5, x = 5, y = 15 },
@@ -2390,7 +2398,10 @@ local DATA = {
           y = 12,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 18681, scriptKey = "85:48f9" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 18680, scriptKey = "85:48f8" },
+        ["1"] = { sceneId = 1, script = 18681, scriptKey = "85:48f9" },
+      },
       warps = {
         {
           destGroup = 26,
@@ -2641,7 +2652,10 @@ local DATA = {
           y = 14,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 23169, scriptKey = "85:5a81" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 23168, scriptKey = "85:5a80" },
+        ["1"] = { sceneId = 1, script = 23169, scriptKey = "85:5a81" },
+      },
       warps = {
         { destGroup = 22, destMap = "MANIAS_HOUSE", destMapNum = 4, destWarp = 1, x = 17, y = 41 },
         { destGroup = 22, destMap = "CIANWOOD_GYM", destMapNum = 5, destWarp = 1, x = 8, y = 43 },
@@ -3423,7 +3437,10 @@ local DATA = {
           y = 20,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 18456, scriptKey = "86:4818" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 18455, scriptKey = "86:4817" },
+        ["1"] = { sceneId = 1, script = 18456, scriptKey = "86:4818" },
+      },
       warps = {
         { destGroup = 3, destMap = "DRAGONS_DEN_1F", destMapNum = 80, destWarp = 3, x = 20, y = 3 },
         { destGroup = 3, destMap = "DRAGON_SHRINE", destMapNum = 82, destWarp = 1, x = 19, y = 29 },
@@ -3499,7 +3516,10 @@ local DATA = {
           y = 8,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 25099, scriptKey = "83:620b" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 25095, scriptKey = "83:6207" },
+        ["1"] = { sceneId = 1, script = 25099, scriptKey = "83:620b" },
+      },
       warps = {
         { destGroup = 3, destMap = "DRAGONS_DEN_B1F", destMapNum = 81, destWarp = 2, x = 4, y = 9 },
         { destGroup = 3, destMap = "DRAGONS_DEN_B1F", destMapNum = 81, destWarp = 2, x = 5, y = 9 },
@@ -3949,11 +3969,12 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 16417, scriptKey = "80:4021" },
-        { sceneId = 2, script = 16418, scriptKey = "80:4022" },
-        { sceneId = 3, script = 16419, scriptKey = "80:4023" },
-        { sceneId = 4, script = 16420, scriptKey = "80:4024" },
-        { sceneId = 5, script = 16421, scriptKey = "80:4025" },
+        ["0"] = { sceneId = 0, script = 16413, scriptKey = "80:401d" },
+        ["1"] = { sceneId = 1, script = 16417, scriptKey = "80:4021" },
+        ["2"] = { sceneId = 2, script = 16418, scriptKey = "80:4022" },
+        ["3"] = { sceneId = 3, script = 16419, scriptKey = "80:4023" },
+        ["4"] = { sceneId = 4, script = 16420, scriptKey = "80:4024" },
+        ["5"] = { sceneId = 5, script = 16421, scriptKey = "80:4025" },
       },
       warps = {
         { destGroup = 24, destMap = "NEW_BARK_TOWN", destMapNum = 4, destWarp = 1, x = 4, y = 11 },
@@ -5734,7 +5755,10 @@ local DATA = {
           y = 3,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 20344, scriptKey = "82:4f78" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 20343, scriptKey = "82:4f77" },
+        ["1"] = { sceneId = 1, script = 20344, scriptKey = "82:4f78" },
+      },
       warps = {
         {
           destGroup = 3,
@@ -6002,7 +6026,10 @@ local DATA = {
           y = 12,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 30918, scriptKey = "89:78c6" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 30914, scriptKey = "89:78c2" },
+        ["1"] = { sceneId = 1, script = 30918, scriptKey = "89:78c6" },
+      },
       warps = {
         { destGroup = 16, destMap = "LANCES_ROOM", destMapNum = 7, destWarp = 3, x = 4, y = 13 },
         { destGroup = 16, destMap = "LANCES_ROOM", destMapNum = 7, destWarp = 4, x = 5, y = 13 },
@@ -6700,7 +6727,10 @@ local DATA = {
           y = 2,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 27908, scriptKey = "83:6d04" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 27907, scriptKey = "83:6d03" },
+        ["1"] = { sceneId = 1, script = 27908, scriptKey = "83:6d04" },
+      },
       warps = {
         {
           destGroup = 9,
@@ -6822,7 +6852,10 @@ local DATA = {
           y = 3,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 21710, scriptKey = "8b:54ce" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 21709, scriptKey = "8b:54cd" },
+        ["1"] = { sceneId = 1, script = 21710, scriptKey = "8b:54ce" },
+      },
       warps = {
         { destGroup = 2, destMap = "MAHOGANY_TOWN", destMapNum = 7, destWarp = 1, x = 3, y = 7 },
         { destGroup = 2, destMap = "MAHOGANY_TOWN", destMapNum = 7, destWarp = 1, x = 4, y = 7 },
@@ -6858,7 +6891,10 @@ local DATA = {
           y = 3,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 22564, scriptKey = "8b:5824" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 22560, scriptKey = "8b:5820" },
+        ["1"] = { sceneId = 1, script = 22564, scriptKey = "8b:5824" },
+      },
       warps = {
         { destGroup = 14, destMap = "ROUTE_3", destMapNum = 1, destWarp = 1, x = 3, y = 3 },
         { destGroup = 7, destMap = "ROUTE_4", destMapNum = 12, destWarp = 1, x = 15, y = 15 },
@@ -7463,7 +7499,10 @@ local DATA = {
           y = 5,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 25329, scriptKey = "85:62f1" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 25325, scriptKey = "85:62ed" },
+        ["1"] = { sceneId = 1, script = 25329, scriptKey = "85:62f1" },
+      },
       warps = {
         { destGroup = 26, destMap = "ROUTE_30", destMapNum = 1, destWarp = 2, x = 2, y = 7 },
         { destGroup = 26, destMap = "ROUTE_30", destMapNum = 1, destWarp = 2, x = 3, y = 7 },
@@ -8073,7 +8112,10 @@ local DATA = {
           y = 2,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 31489, scriptKey = "8a:7b01" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 31488, scriptKey = "8a:7b00" },
+        ["1"] = { sceneId = 1, script = 31489, scriptKey = "8a:7b01" },
+      },
       warps = {
         { destGroup = 24, destMap = "ELMS_LAB", destMapNum = 5, destWarp = 1, x = 6, y = 3 },
         {
@@ -8269,7 +8311,10 @@ local DATA = {
           y = 11,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 19580, scriptKey = "89:4c7c" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 19579, scriptKey = "89:4c7b" },
+        ["1"] = { sceneId = 1, script = 19580, scriptKey = "89:4c7c" },
+      },
       warps = {
         {
           destGroup = 1,
@@ -8982,7 +9027,10 @@ local DATA = {
           y = 4,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 21153, scriptKey = "89:52a1" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 21152, scriptKey = "89:52a0" },
+        ["1"] = { sceneId = 1, script = 21153, scriptKey = "89:52a1" },
+      },
       warps = {
         { destGroup = 24, destMap = "NEW_BARK_TOWN", destMapNum = 4, destWarp = 2, x = 6, y = 7 },
         { destGroup = 24, destMap = "NEW_BARK_TOWN", destMapNum = 4, destWarp = 2, x = 7, y = 7 },
@@ -9228,7 +9276,10 @@ local DATA = {
           y = 5,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 28469, scriptKey = "86:6f35" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 28468, scriptKey = "86:6f34" },
+        ["1"] = { sceneId = 1, script = 28469, scriptKey = "86:6f35" },
+      },
       warps = {
         { destGroup = 7, destMap = "ROUTE_10_NORTH", destMapNum = 14, destWarp = 2, x = 2, y = 17 },
         { destGroup = 7, destMap = "ROUTE_10_NORTH", destMapNum = 14, destWarp = 2, x = 3, y = 17 },
@@ -9796,8 +9847,9 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 24850, scriptKey = "81:6112" },
-        { sceneId = 2, script = 24851, scriptKey = "81:6113" },
+        ["0"] = { sceneId = 0, script = 24849, scriptKey = "81:6111" },
+        ["1"] = { sceneId = 1, script = 24850, scriptKey = "81:6112" },
+        ["2"] = { sceneId = 2, script = 24851, scriptKey = "81:6113" },
       },
       warps = {
         { destGroup = 3, destMap = "RADIO_TOWER_4F", destMapNum = 20, destWarp = 1, x = 0, y = 0 },
@@ -10636,7 +10688,10 @@ local DATA = {
           y = 4,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 26493, scriptKey = "86:677d" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 26492, scriptKey = "86:677c" },
+        ["1"] = { sceneId = 1, script = 26493, scriptKey = "86:677d" },
+      },
       warps = { { destGroup = 7, destMap = "BILLS_HOUSE", destMapNum = 11, destWarp = 1, x = 47, y = 5 } },
     },
     ROUTE_26 = {
@@ -11050,7 +11105,10 @@ local DATA = {
           y = 10,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 27512, scriptKey = "87:6b78" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 27511, scriptKey = "87:6b77" },
+        ["1"] = { sceneId = 1, script = 27512, scriptKey = "87:6b78" },
+      },
       warps = {
         {
           destGroup = 24,
@@ -11251,7 +11309,10 @@ local DATA = {
           y = 2,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 16398, scriptKey = "86:400e" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 16397, scriptKey = "86:400d" },
+        ["1"] = { sceneId = 1, script = 16398, scriptKey = "86:400e" },
+      },
       warps = {
         {
           destGroup = 24,
@@ -12034,8 +12095,9 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 16402, scriptKey = "81:4012" },
-        { sceneId = 2, script = 16403, scriptKey = "81:4013" },
+        ["0"] = { sceneId = 0, script = 16401, scriptKey = "81:4011" },
+        ["1"] = { sceneId = 1, script = 16402, scriptKey = "81:4012" },
+        ["2"] = { sceneId = 2, script = 16403, scriptKey = "81:4013" },
       },
       warps = {
         {
@@ -13030,7 +13092,10 @@ local DATA = {
           y = 6,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 29876, scriptKey = "82:74b4" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 29875, scriptKey = "82:74b3" },
+        ["1"] = { sceneId = 1, script = 29876, scriptKey = "82:74b4" },
+      },
       warps = {
         {
           destGroup = 10,
@@ -13268,8 +13333,9 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 16405, scriptKey = "82:4015" },
-        { sceneId = 2, script = 16406, scriptKey = "82:4016" },
+        ["0"] = { sceneId = 0, script = 16404, scriptKey = "82:4014" },
+        ["1"] = { sceneId = 1, script = 16405, scriptKey = "82:4015" },
+        ["2"] = { sceneId = 2, script = 16406, scriptKey = "82:4016" },
       },
       warps = {
         { destGroup = 3, destMap = "NATIONAL_PARK", destMapNum = 15, destWarp = 1, x = 0, y = 4 },
@@ -14645,7 +14711,10 @@ local DATA = {
           y = 16,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 20056, scriptKey = "8a:4e58" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 20055, scriptKey = "8a:4e57" },
+        ["1"] = { sceneId = 1, script = 20056, scriptKey = "8a:4e58" },
+      },
       warps = {
         {
           destGroup = 2,
@@ -15971,7 +16040,10 @@ local DATA = {
           y = 19,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 25598, scriptKey = "8b:63fe" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 25597, scriptKey = "8b:63fd" },
+        ["1"] = { sceneId = 1, script = 25598, scriptKey = "8b:63fe" },
+      },
       warps = {
         {
           destGroup = 3,
@@ -16339,7 +16411,10 @@ local DATA = {
           y = 2,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 16398, scriptKey = "83:400e" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 16397, scriptKey = "83:400d" },
+        ["1"] = { sceneId = 1, script = 16398, scriptKey = "83:400e" },
+      },
       warps = {
         {
           destGroup = 3,
@@ -17054,7 +17129,10 @@ local DATA = {
           y = 4,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 19943, scriptKey = "88:4de7" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 19942, scriptKey = "88:4de6" },
+        ["1"] = { sceneId = 1, script = 19943, scriptKey = "88:4de7" },
+      },
       warps = {
         {
           destGroup = 3,
@@ -17550,9 +17628,10 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 20652, scriptKey = "81:50ac" },
-        { sceneId = 2, script = 20653, scriptKey = "81:50ad" },
-        { sceneId = 3, script = 20654, scriptKey = "81:50ae" },
+        ["0"] = { sceneId = 0, script = 20651, scriptKey = "81:50ab" },
+        ["1"] = { sceneId = 1, script = 20652, scriptKey = "81:50ac" },
+        ["2"] = { sceneId = 2, script = 20653, scriptKey = "81:50ad" },
+        ["3"] = { sceneId = 3, script = 20654, scriptKey = "81:50ae" },
       },
       warps = {
         {
@@ -17875,9 +17954,10 @@ local DATA = {
         },
       },
       sceneScripts = {
-        { sceneId = 1, script = 19341, scriptKey = "83:4b8d" },
-        { sceneId = 2, script = 19342, scriptKey = "83:4b8e" },
-        { sceneId = 3, script = 19343, scriptKey = "83:4b8f" },
+        ["0"] = { sceneId = 0, script = 19337, scriptKey = "83:4b89" },
+        ["1"] = { sceneId = 1, script = 19341, scriptKey = "83:4b8d" },
+        ["2"] = { sceneId = 2, script = 19342, scriptKey = "83:4b8e" },
+        ["3"] = { sceneId = 3, script = 19343, scriptKey = "83:4b8f" },
       },
       warps = {
         {
@@ -18083,7 +18163,10 @@ local DATA = {
           y = 2,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 19038, scriptKey = "84:4a5e" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 19034, scriptKey = "84:4a5a" },
+        ["1"] = { sceneId = 1, script = 19038, scriptKey = "84:4a5e" },
+      },
       warps = {
         { destGroup = 4, destMap = "ECRUTEAK_CITY", destMapNum = 9, destWarp = 12, x = 9, y = 15 },
         { destGroup = 4, destMap = "ECRUTEAK_CITY", destMapNum = 9, destWarp = 12, x = 10, y = 15 },
@@ -18586,7 +18669,10 @@ local DATA = {
           y = 32,
         },
       },
-      sceneScripts = { { sceneId = 1, script = 23470, scriptKey = "88:5bae" } },
+      sceneScripts = {
+        ["0"] = { sceneId = 0, script = 23469, scriptKey = "88:5bad" },
+        ["1"] = { sceneId = 1, script = 23470, scriptKey = "88:5bae" },
+      },
       warps = {
         {
           destGroup = 23,
@@ -43839,6 +43925,11 @@ return function(mod)
   -- (Every map exists in a real Crystal import; a test dataset may hold fewer.)
   each(maps, function(id, fields)
     if mod.content.maps:get(id) then
+      -- sceneScripts is keyed from 0 (a dictionary, which a patch merges),
+      -- so clear vanilla's first: a scene Legacy dropped must not survive.
+      if fields.sceneScripts then
+        patch(mod, "maps", id, { sceneScripts = mod.DELETE }, stats)
+      end
       patch(mod, "maps", id, fields, stats)
     else
       mod.log:info("map %s not in this dataset; skipped", id)
