@@ -12,6 +12,12 @@
 -- Crystal Legacy's (maps/*Gym.asm, the Elite Four rooms, DragonShrine.asm,
 -- KantoLevelCapUpdateScript in engine/events/std_scripts.asm).
 --
+-- Hardcore (opt-in, off by default), from Crystal Legacy's ENGINE_HARDCORE_MODE
+-- checks: fainted Pokémon are not healed (Pokémon Center, Sacred Ash, Mom),
+-- revives can't be used, Rare Candy and vitamins do nothing on a fainted
+-- Pokémon, the PC and the Day-Care won't take one, and whiting out resets the
+-- game to your last save.
+--
 -- Event ids are vanilla Crystal's (pokecrystal constants/event_flags.asm),
 -- matching src/core/gen2/FlagNames.lua in gen1recomp.
 
@@ -52,11 +58,16 @@ return function(mod)
     { key = "levelCaps", label = "LEVEL CAPS", type = "toggle", default = true },
     { key = "setMode", label = "SET MODE VS TRAINERS", type = "toggle", default = true },
     { key = "noItems", label = "NO ITEMS VS TRAINERS", type = "toggle", default = true },
+    { key = "hardcore", label = "HARDCORE", type = "toggle", default = false },
   })
 
+  local DEFAULTS = { hardcore = false }
   local function option(key)
     local v = mod.options:get(key)
-    if v == nil then return true end
+    if v == nil then
+      if DEFAULTS[key] ~= nil then return DEFAULTS[key] end
+      return true
+    end
     return v
   end
 
@@ -194,6 +205,107 @@ return function(mod)
   else
     mod.log:warn("battle PACK module not found; items stay usable vs trainers")
   end
+
+  -- ------------------------------------------------------------- hardcore
+  local function hardcore() return option("hardcore") end
+  local function fainted(mon) return type(mon) == "table" and (mon.hp or 0) <= 0 end
+  local function need(name, what)
+    local ok, m = pcall(require, name)
+    if ok and type(m) == "table" then return m end
+    mod.log:warn("%s not found; Hardcore %s disabled", name, what)
+  end
+
+  -- engine/pokemon/health.asm HealPartyMon returns early for a fainted mon,
+  -- so every HealParty (Center, Mom, Sacred Ash, the whiteout) skips them.
+  local World = need("src.world.gen2.World", "healing rule")
+  if World and World.healParty then
+    local healParty = World.healParty
+    World.healParty = function(self, ...)
+      local save = self and self.game and self.game.save
+      local party = save and save.party
+      if not (hardcore() and type(party) == "table") then return healParty(self, ...) end
+      local alive = {}
+      for _, mon in ipairs(party) do
+        if not fainted(mon) then alive[#alive + 1] = mon end
+      end
+      save.party = alive
+      local ok, err = pcall(healParty, self, ...)
+      save.party = party
+      if not ok then error(err, 0) end
+    end
+  end
+
+  -- engine/items/item_effects.asm: revives refuse outright; Rare Candy and
+  -- the vitamins refuse a fainted target.
+  local REVIVES = { REVIVE = true, MAX_REVIVE = true, REVIVAL_HERB = true }
+  local NEEDS_ALIVE = { RARE_CANDY = true, HP_UP = true, PROTEIN = true,
+                        IRON = true, CARBOS = true, CALCIUM = true }
+  local ItemEffects = need("src.core.gen2.ItemEffects", "item rule")
+  if ItemEffects and ItemEffects.useOnMon then
+    local useOnMon = ItemEffects.useOnMon
+    ItemEffects.useOnMon = function(itemId, mon, ...)
+      if hardcore() and (REVIVES[itemId] or (NEEDS_ALIVE[itemId] and fainted(mon))) then
+        return { used = false,
+                 text = require("src.core.Strings")(ItemEffects.TEXT_NO_EFFECT) }
+      end
+      return useOnMon(itemId, mon, ...)
+    end
+  end
+
+  -- engine/pokemon/bills_pc.asm DepositPokemon: a fainted mon can't be boxed
+  -- (Legacy tells you to release it instead).
+  local Boxes = need("src.core.gen2.Boxes", "PC rule")
+  if Boxes and Boxes.canDeposit then
+    local canDeposit = Boxes.canDeposit
+    Boxes.canDeposit = function(save, partyIndex, ...)
+      local mon = save and save.party and save.party[partyIndex]
+      if hardcore() and fainted(mon) then
+        return false, "Fainted POKéMON\ncan't be stored."
+      end
+      return canDeposit(save, partyIndex, ...)
+    end
+  end
+
+  -- engine/events/daycare.asm: the Day-Care won't take a fainted mon.
+  local FAINTED_REFUSAL = "legacy_hard_mode:fainted"
+  local Breeding = need("src.core.gen2.Breeding", "Day-Care rule")
+  local DayCareMenu = need("src.ui.gen2.DayCareMenu", "Day-Care rule")
+  if Breeding and Breeding.canDeposit and DayCareMenu and DayCareMenu.refuse then
+    local canDeposit = Breeding.canDeposit
+    Breeding.canDeposit = function(data, save, which, partyIndex, ...)
+      local mon = save and save.party and save.party[partyIndex]
+      if hardcore() and fainted(mon) then return false, FAINTED_REFUSAL end
+      return canDeposit(data, save, which, partyIndex, ...)
+    end
+    local refuse = DayCareMenu.refuse
+    DayCareMenu.refuse = function(self, key, ...)
+      if key == FAINTED_REFUSAL then
+        return self:say({ { "I can't look after", "a fainted #MON." } },
+          function() self:comeAgain() end)
+      end
+      return refuse(self, key, ...)
+    end
+  end
+
+  -- engine/events/whiteout.asm: `checkflag ENGINE_HARDCORE_MODE / iftrue
+  -- .reset`. Both of gen1recomp's blackout paths (a lost battle, a poisoned
+  -- walk) announce world.blacked_out; the reset waits for the warp home to
+  -- land, so the world is not torn down under its own map setup.
+  local pendingReset = false
+  mod.events:on("world.blacked_out", function()
+    if hardcore() then pendingReset = true end
+  end)
+  mod.events:on("map.entered", function()
+    if not pendingReset then return end
+    pendingReset = false
+    local game = mod.game
+    if game and game.softReset then
+      game:softReset()
+    elseif game and game.returnToTitle then
+      game:returnToTitle()
+    end
+  end)
+  mod.exports.hardcoreResetPending = function() return pendingReset end
 
   mod.log:info("Legacy Hard Mode loaded")
 end

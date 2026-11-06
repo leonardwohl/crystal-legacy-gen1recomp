@@ -303,6 +303,41 @@ local CHECKS = {
     local ok, wildInst = pcall(data.screens.Gen2PackMenu.new, nil, { battle = true })
     T.eq(ok and wildInst and wildInst.update ~= nil and closed, true,
       "hard mode: wild battles get the normal PACK")
+    Runtime.emit("battle.ended", { battle = ui, result = "win" })
+
+    -- Hardcore: off by default, then every rule with it on.
+    local World = require("src.world.gen2.World")
+    local function party()
+      return { { species = "CHIKORITA", level = 5, hp = 0, maxHp = 20, moves = {} },
+               { species = "PIDGEY", level = 5, hp = 3, maxHp = 18, moves = {} } }
+    end
+    local hsave = { party = party() }
+    World.healParty({ game = { save = hsave, data = data } })
+    T.eq(hsave.party[1].hp, 20, "hardcore: off by default (Center revives)")
+    loader.modOptions.legacy_hard_mode = { hardcore = true }
+    hsave = { party = party() }
+    local before = hsave.party
+    World.healParty({ game = { save = hsave, data = data } })
+    T.eq(hsave.party[1].hp, 0, "hardcore: Center leaves fainted mons fainted")
+    T.eq(hsave.party[2].hp, 18, "hardcore: Center still heals the rest")
+    T.eq(hsave.party == before and #hsave.party == 2, true, "hardcore: party kept intact")
+    local ItemEffects = require("src.core.gen2.ItemEffects")
+    T.eq(ItemEffects.useOnMon("REVIVE", hsave.party[1], data).used, false, "hardcore: no Revive")
+    T.eq(ItemEffects.useOnMon("RARE_CANDY", hsave.party[1], data).used, false,
+      "hardcore: no Rare Candy on a fainted mon")
+    local okBox, why = require("src.core.gen2.Boxes").canDeposit(hsave, 1, 1)
+    T.eq(okBox == false and why:find("Fainted", 1, true) ~= nil, true, "hardcore: PC refuses a fainted mon")
+    local Breeding = require("src.core.gen2.Breeding")
+    local okDc, key = Breeding.canDeposit(data, hsave, "man", 1)
+    T.eq(okDc == false and key, "legacy_hard_mode:fainted", "hardcore: Day-Care refuses a fainted mon")
+    local reset = false
+    loader.game = { softReset = function() reset = true end }
+    Runtime.emit("world.blacked_out", { save = hsave })
+    T.eq(reset, false, "hardcore: reset waits for the warp home")
+    Runtime.emit("map.entered", {})
+    T.eq(reset, true, "hardcore: whiting out resets the game")
+    loader.modOptions.legacy_hard_mode = nil
+    loader.game = nil
   end,
   crystal_legacy_rematches = function()
     -- Run the real gen1recomp Crystal script VM over the merged scripts.

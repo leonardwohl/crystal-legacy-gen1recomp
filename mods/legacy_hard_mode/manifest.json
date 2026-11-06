@@ -13,6 +13,6 @@
   "optional_dependencies": [],
   "conflicts": [],
   "permissions": ["engine_internals"],
-  "description": "Crystal Legacy's Hard Mode: level caps that rise with your badges, Set style and no items in trainer battles. Each rule can be toggled. Unofficial port of Pokemon Crystal Legacy.",
+  "description": "Crystal Legacy's Hard Mode: level caps that rise with your badges, Set style and no items in trainer battles, plus an opt-in Hardcore rule set. Each rule can be toggled. Unofficial port of Pokemon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

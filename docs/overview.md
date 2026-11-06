@@ -22,7 +22,7 @@ only translates their work into gen1recomp's mod format.
 | [Ghost/Dark Switch](../mods/crystal_legacy_ghost_dark) | Ghost moves special, Dark moves physical (Gold, Silver, Crystal) | ✅ ready to try |
 | [Shop Changes](../mods/crystal_legacy_shops) | Shop stock and prices, Celadon TM upgrades, the Flower Shop berry clerk | ✅ ready to try |
 | [Rematches](../mods/crystal_legacy_rematches) | Gym leaders after the Elite Four; Elite Four and Lance with 16 badges | ✅ ready to try (Red: see Story) |
-| [Legacy Hard Mode](../mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore and Gen 1/3 later |
+| [Legacy Hard Mode](../mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore is an opt-in toggle; Gen 1/3 later |
 | [Quality of Life](../mods/crystal_legacy_qol) | Run with B, reuse Repels, START sorts the PACK, quick nurse, Day-Care keeps exp (Crystal) | 🧪 new; each part can be toggled |
 | [Story Changes](../mods/crystal_legacy_story) | 131 changed maps: Rocket story, Trainer House, fossils, legendaries, Red rematch, new sprites, dialogue | ✅ ready to try |
 

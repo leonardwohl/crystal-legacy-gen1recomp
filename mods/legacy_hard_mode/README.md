@@ -11,6 +11,13 @@ toggled in the mod's options.
 - **Set style against trainers.** No free switch when the foe's Pokémon faints.
   Your own Shift/Set option is restored after each battle.
 - **No items against trainers.** The PACK shows "Items can't be used here."
+- **Hardcore** (off by default; switch it on in the options):
+  - fainted Pokémon stay fainted: the Pokémon Center, Mom and Sacred Ash heal
+    only the ones still standing;
+  - Revive, Max Revive and Revival Herb can't be used, and Rare Candy and
+    vitamins do nothing on a fainted Pokémon;
+  - the PC and the Day-Care won't take a fainted Pokémon;
+  - whiting out sends you back to the title screen, to carry on from your last save.
 
 ## Cap schedule (from Crystal Legacy)
 
@@ -33,7 +40,8 @@ rematch (which needs the Rematches mod) and Red.
 
 ## Not included yet
 
-- **Hardcore Mode**: no healing fainted Pokémon, and a reset on whiting out.
+- **Hardcore's rival battle**: Crystal Legacy makes the Cherrygrove rival fight one
+  you can't afford to lose in Hardcore; here it stays the usual "can lose" battle.
 - **Day-Care level cap**: gen1recomp has no hook for Day-Care experience.
 - **Gen 1 and Gen 3**: the rules would port, but they need cap tables of their
   own (Yellow Legacy has one for Gen 1).
