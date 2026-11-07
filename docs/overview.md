@@ -25,6 +25,7 @@ only translates their work into gen1recomp's mod format.
 | [Legacy Hard Mode](../mods/legacy_hard_mode) | Level caps, Set mode and no items in trainer battles (Crystal) | ✅ ready to try; Hardcore is an opt-in toggle; Gen 1/3 later |
 | [Quality of Life](../mods/crystal_legacy_qol) | Run with B, reuse Repels, START sorts the PACK, quick nurse, Day-Care keeps exp (Crystal) | 🧪 new; each part can be toggled |
 | [Bug Fixes](../mods/crystal_legacy_fixes) | Legacy's fixes for vanilla bugs gen1recomp reproduces: catch bonuses, Fast / Moon / Love Ball, trainer AI (Crystal) | 🧪 new; more after the remaining checks |
+| [Menu Icons](../mods/crystal_legacy_icons) | Legacy's per-species party icons and colours; bring your own icons (copy Crystal Legacy's `gfx/icons` in as `icons/`) | 🧪 new |
 | [Story Changes](../mods/crystal_legacy_story) | 131 changed maps: Rocket story, Trainer House, fossils, legendaries, Red rematch, new sprites, dialogue | ✅ ready to try |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes

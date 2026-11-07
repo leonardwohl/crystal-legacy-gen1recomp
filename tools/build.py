@@ -1339,6 +1339,128 @@ end
 """
 
 
+# ----------------------------------------------------------------- menu icons
+def build_icons(ctx):
+    """Data only: which icon file and palette each species uses, and the
+    palettes' colours. The icon images themselves are never copied into the
+    mod; players drop Crystal Legacy's gfx/icons folder in themselves."""
+    import re
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "story"))
+    import sprites as SP
+    from asm import species_order
+    leg, base = ctx["legacy"], ctx["base"]
+    files = {sp: os.path.basename(path) for sp, path in SP._species_icon_files(leg).items()}
+    order = species_order(base)
+    pals = []
+    for line in open(os.path.join(leg, "data/pokemon/menu_icon_pals.asm"), encoding="utf-8"):
+        m = re.match(r"\s*icon_pals\s+(\w+),\s*(\w+)", line)
+        if m:
+            pals.append((m.group(1), m.group(2)))
+    colours = {}
+    names = ["RED", "BLUE", "GREEN", "BROWN", "PINK", "GRAY", "TEAL", "PURPLE"]
+    rows = [l for l in open(os.path.join(leg, "gfx/stats/party_menu_ob.pal"), encoding="utf-8")
+            if l.strip().startswith("RGB")]
+    for name, row in zip(names, rows):
+        nums = [int(n) for n in re.findall(r"\d+", row.split(";")[0])]
+        # GBC RGB, 0-31 per channel (divided down at run time)
+        colours[name] = [[nums[i + j] for j in range(3)] for i in range(0, 12, 3)]
+    icons = {}
+    for i, sp in enumerate(order):
+        if sp in files and i < len(pals):
+            icons[sp] = {"file": files[sp], "normal": pals[i][0], "shiny": pals[i][1]}
+    data = {"icons": icons, "palettes": colours}
+    body = '''
+  legacyMenuIcons(mod)'''
+    lines = [
+        "Crystal Legacy's party menu icons: one icon per species, coloured with Legacy's "
+        "per-species palette (and its shiny palette)",
+        "**The icons are not included.** Copy Crystal Legacy's `gfx/icons` folder into "
+        "this mod's folder as `icons/` (so `icons/bulbasaur.png` and so on). Species "
+        "without a file keep gen1recomp's normal icon",
+        "%d species mapped to Legacy's icon files and palettes" % len(icons),
+    ]
+    return data, body, lines
+
+
+ICONS_RUNTIME = r"""
+local function iconRgba(palette)
+  -- GBC OBJ palette: colour 0 is transparent, then light, dark, black.
+  local out = {}
+  for i, c in ipairs(palette) do out[i] = { c[1] / 31, c[2] / 31, c[3] / 31, i == 1 and 0 or 1 } end
+  return out
+end
+
+-- The four Game Boy shades, lightest first, by brightness.
+local function shadeOf(r, g, b)
+  local v = (r + g + b) / 3
+  if v > 0.84 then return 1 elseif v > 0.5 then return 2 elseif v > 0.17 then return 3 end
+  return 4
+end
+
+local function legacyMenuIcons(mod)
+  local okA, Assets = pcall(require, "src.render.Assets")
+  if not (okA and Assets and Assets.compose) then
+    mod.log:warn("asset module not found; Legacy menu icons disabled")
+    return
+  end
+  -- The mod's own folder, through the sandbox's mod:info (love.filesystem
+  -- is off limits to mods).
+  local function present(file)
+    local ok, info = pcall(mod.info, mod, "icons/" .. file)
+    return ok and type(info) == "table" and info.type == "file"
+  end
+  local found, missing = 0, 0
+  local registered = {}
+  -- One composed image per species and palette, built from the player's own
+  -- file the first time the party menu asks for it.
+  local function composedPath(species, shiny)
+    local rec = DATA.icons[species]
+    if not rec then return nil end
+    if not present(rec.file) then return nil end
+    local src = mod.path .. "/icons/" .. rec.file
+    local key = "legacy-icons/" .. species .. (shiny and "-shiny" or "") .. ".png"
+    if not registered[key] then
+      local colours = iconRgba(DATA.palettes[shiny and rec.shiny or rec.normal]
+        or DATA.palettes.RED)
+      Assets.compose(key, function()
+        -- loaded by the engine's asset layer, outside the mod sandbox
+        local img = Assets.imageData(src)
+        img:mapPixel(function(_, _, r, g, b, a)
+          if a == 0 then return 0, 0, 0, 0 end
+          local c = colours[shadeOf(r, g, b)]
+          return c[1], c[2], c[3], c[4]
+        end)
+        return img
+      end)
+      registered[key] = true
+    end
+    return key
+  end
+  mod.exports.composedPath = composedPath
+
+  for species, rec in pairs(DATA.icons) do
+    if present(rec.file) then found = found + 1 else missing = missing + 1 end
+  end
+  if found == 0 then
+    mod.log:info("no icons in %s/icons yet; copy Crystal Legacy's gfx/icons folder there", mod.path)
+  else
+    mod.log:info("Legacy menu icons: %d species found, %d missing", found, missing)
+  end
+
+  mod.hooks:wrap("pokemon.icon", function(nextFn, path, ctx)
+    path = nextFn(path, ctx)
+    local mon = ctx and ctx.mon
+    local species = (ctx and ctx.species) or (mon and mon.species)
+    if not species or (mon and mon.isEgg) then return path end
+    local key = composedPath(species, mon and mon.shiny)
+    if not key then return path end
+    ctx.trueColor = true
+    return key
+  end)
+end
+"""
+
+
 POKEMON_RT = r"""
 local function copyT(v)
   if type(v) ~= "table" then return v end
@@ -1438,6 +1560,12 @@ MODS = [
      "runtime": FIXES_RUNTIME, "permissions": ["engine_internals"],
      "summary": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still "
                 "reproduces: Poké Ball catch bonuses, the trainer AI and the Glacier Badge."},
+    {"id": "crystal_legacy_icons", "name": "Legacy: Menu Icons",
+     "category": "QOL", "games": ["crystal"], "build": build_icons,
+     "runtime": ICONS_RUNTIME, "permissions": ["engine_internals"],
+     "summary": "Crystal Legacy's per-species party menu icons and colours. Bring "
+                "your own icons: copy Crystal Legacy's gfx/icons folder into this "
+                "mod's folder as icons/."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
      "runtime": QOL_RUNTIME, "permissions": ["engine_internals"],

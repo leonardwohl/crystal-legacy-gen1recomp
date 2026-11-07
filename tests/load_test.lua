@@ -86,6 +86,9 @@ for _, id in ipairs(ids) do
   files["mods/" .. id .. "/manifest.json"] = read(repo .. "/mods/" .. id .. "/manifest.json")
   files["mods/" .. id .. "/main.lua"] = read(repo .. "/mods/" .. id .. "/main.lua")
 end
+-- Menu Icons: a stand-in for one icon a player copied in (placeholder bytes,
+-- never decoded -- the checks only follow which path the hook hands back).
+files["mods/crystal_legacy_icons/icons/chikorita.png"] = "stand-in"
 local loader = Loader.new({ fs = T.sdk.memfs(files), generation = 2,
   version = "crystal", dev = true })
 loader:load(data)
@@ -116,6 +119,24 @@ Runtime.emit("game.ready", { game = { data = data } })
 local p, enc = data.pokemon, data.gen2Encounters
 local trainers = data.gen2Trainers.classes
 local CHECKS = {
+  crystal_legacy_icons = function()
+    -- Data only: the mod ships Legacy's species -> icon file / palette map.
+    local Assets = require("src.render.Assets")
+    local function icon(species, mon)
+      local ctx = { species = species, mon = mon or { species = species } }
+      local path = Runtime.call("pokemon.icon", function(p) return p end, "vanilla.png", ctx)
+      return path, ctx.trueColor
+    end
+    local path, trueColor = icon("CHIKORITA")
+    T.eq(path, "legacy-icons/CHIKORITA.png", "icons: a copied-in icon is used")
+    T.eq(trueColor, true, "icons: and drawn in its own colours")
+    T.eq(Assets.isComposed(path), true, "icons: coloured on demand from the player's file")
+    T.eq((icon("CHIKORITA", { species = "CHIKORITA", shiny = true })),
+      "legacy-icons/CHIKORITA-shiny.png", "icons: shiny Pokemon get Legacy's shiny palette")
+    T.eq((icon("CYNDAQUIL")), "vanilla.png", "icons: no file -> gen1recomp's normal icon")
+    T.eq((icon("CHIKORITA", { species = "CHIKORITA", isEgg = true })), "vanilla.png",
+      "icons: eggs keep the egg icon")
+  end,
   crystal_legacy_fixes = function()
     local Catching = require("src.battle.gen2.Catching")
     T.eq(Catching.statusBonus("burn", {}), 5, "fixes: burn gives a catch bonus")

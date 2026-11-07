@@ -1,0 +1,22 @@
+{
+  "id": "crystal_legacy_icons",
+  "name": "Legacy: Menu Icons",
+  "version": "0.3.0",
+  "api": 2,
+  "games": [
+    "crystal"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "QOL",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "Crystal Legacy's per-species party menu icons and colours. Bring your own icons: copy Crystal Legacy's gfx/icons folder into this mod's folder as icons/. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}
