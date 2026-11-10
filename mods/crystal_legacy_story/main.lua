@@ -25290,6 +25290,7 @@ local DATA = {
       { id = 19, op = "playsound" },
       { op = "waitsfx" },
       { frames = 35, op = "pause" },
+      { id = 50, op = "special" },
       { op = "sjump", script = "83:410f" },
     },
     ["83:41aa"] = {

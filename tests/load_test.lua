@@ -880,6 +880,30 @@ local CHECKS = {
     T.eq(#report.noTrainer, 0, "story walk: every battle finds its trainer")
     T.eq(#unknown, 0, "story walk: no command gen1recomp lacks")
     T.eq(#refs, 0, "story walk: every trainer / item / species / sprite / warp exists")
+    -- A script that fades the screen out must fade it back in or leave the
+    -- map (gen1recomp keeps a fade until something lifts it): the fossil
+    -- scientist once left the Research Center black.
+    local order = data.gen2Constants and data.gen2Constants.specialOrder or {}
+    local special = {}
+    for i, name in ipairs(order) do special[name] = i - 1 end
+    local outs = { [special.FadeOutToBlack or -1] = true, [special.FadeOutToWhite or -1] = true }
+    local ins = { [special.FadeInFromBlack or -1] = true, [special.FadeInFromWhite or -1] = true }
+    local leaves = { warp = true, warpfacing = true, warpmod = true, reloadmap = true,
+      reloadmapafterbattle = true, newloadmap = true, warpcheck = true }
+    local dark = {}
+    for key, rows in pairs(data.gen2Scripts) do
+      if type(key) == "string" and key:match("^[89a-f]%x:") then
+        local pending = false
+        for _, r in ipairs(rows) do
+          if r.op == "special" and outs[r.id] then pending = true
+          elseif (r.op == "special" and ins[r.id]) or leaves[r.op] then pending = false end
+        end
+        if pending then dark[#dark + 1] = key end
+      end
+    end
+    table.sort(dark)
+    for _, k in ipairs(dark) do print("left dark: " .. k) end
+    T.eq(#dark, 0, "story walk: every fade-out is faded back in (or leaves the map)")
     -- Move Reminder: talk to the second NPC in the Move Deleter's house with a
     -- level-20 Chikorita that has forgotten Razor Leaf, and learn it back.
     do

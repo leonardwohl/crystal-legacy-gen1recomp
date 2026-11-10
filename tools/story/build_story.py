@@ -19,6 +19,7 @@ Pipeline (everything ROM-derived stays in --work):
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -192,6 +193,7 @@ def main():
                 rows[i] = {"op": "modcommand", "verb": REMINDER_VERBS[row["id"]]}
                 swapped += 1
     print("move reminder rows:", swapped)
+    print("fade-ins added:", add_missing_fade_ins(a.base, story["scripts"]))
     import textc
     common = textc.text_blocks(os.path.join(a.legacy, "data/text/common_3.asm"))
     reminder_text = {k.lstrip("_"): common[k] for k in REMINDER_TEXTS}
@@ -427,6 +429,39 @@ local function numberKeys(t)
   return out
 end
 '''
+
+
+# Scripts that leave the map clear a fade by loading the next one.
+LEAVES_MAP = {"warp", "warpfacing", "warpmod", "reloadmap", "reloadmapafterbattle",
+              "newloadmap", "warpcheck"}
+
+
+def add_missing_fade_ins(base, scripts):
+    """A few Legacy scripts fade the screen out and carry on without fading it
+    back in (the fossil scientist: FadeBlackQuickly, a sound, a pause, then
+    back into his dialogue). The cartridge recovers on its own; gen1recomp
+    keeps a fade until a script lifts it, so the screen stayed black. Such a
+    script gets the matching fade-in just before it jumps or ends."""
+    names = [m.group(1) for m in re.finditer(
+        r"^\s*add_special\s+(\w+)",
+        open(os.path.join(base, "data/events/special_pointers.asm"), encoding="utf-8").read(),
+        re.M)]
+    pairs = {names.index("FadeBlackQuickly"): names.index("FadeInQuickly"),
+             names.index("FadeOutPalettes"): names.index("FadeInPalettes")}
+    fade_ins = set(pairs.values())
+    added = 0
+    for rows in scripts.values():
+        pending = None
+        for row in rows:
+            op, sid = row.get("op"), row.get("id")
+            if op == "special" and sid in pairs:
+                pending = pairs[sid]
+            elif (op == "special" and sid in fade_ins) or op in LEAVES_MAP:
+                pending = None
+        if pending is not None and rows and rows[-1].get("op") in ("sjump", "end"):
+            rows.insert(len(rows) - 1, {"op": "special", "id": pending})
+            added += 1
+    return added
 
 
 def changed_trades(base, legacy):
