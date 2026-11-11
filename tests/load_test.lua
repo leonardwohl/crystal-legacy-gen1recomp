@@ -904,6 +904,42 @@ local CHECKS = {
     table.sort(dark)
     for _, k in ipairs(dark) do print("left dark: " .. k) end
     T.eq(#dark, 0, "story walk: every fade-out is faded back in (or leaves the map)")
+    -- Std scripts (nurses, signs, bookshelves...): every call resolves to a
+    -- real one. The only exception is Legacy's own KantoLevelCapUpdateScript,
+    -- which gen1recomp has no equivalent of and which just ends. (A build once
+    -- sent every std call there, silencing every nurse on Story maps.)
+    local unresolved, legacyOnly = {}, 0
+    for key, rows in pairs(data.gen2Scripts) do
+      if type(key) == "string" and key:match("^[89a-f]%x:") then
+        for i, r in ipairs(rows) do
+          if r.op == "jumpstd" or r.op == "callstd" then
+            if r.script and data.gen2Scripts[r.script] then
+            elseif (r.id or 0) >= 500 then legacyOnly = legacyOnly + 1
+            else unresolved[#unresolved + 1] = key .. "#" .. i end
+          end
+        end
+      end
+    end
+    for _, k in ipairs(unresolved) do print("std unresolved: " .. k) end
+    T.eq(#unresolved, 0, "story walk: every std script call resolves")
+    T.eq(legacyOnly <= 20, true, "story walk: only Legacy's Kanto level-cap std calls end early (" .. legacyOnly .. ")")
+    -- And the bug as reported: the Goldenrod nurse talks.
+    local nurseKey
+    for _, o in ipairs((data.gen2Maps.GOLDENROD_POKECENTER_1F or {}).objects or {}) do
+      if o.sprite == "SPRITE_NURSE" then nurseKey = o.scriptKey end
+    end
+    local said = 0
+    if nurseKey then
+      local vm = Vm.new(data.gen2Scripts, data.gen2Text, Events.new(), {
+        showText = function(_, cb) said = said + 1 if cb then cb() end end,
+        yesorno = function(f) f(false) end, waitButton = function(cb) cb() end,
+        specialOrder = data.gen2Constants and data.gen2Constants.specialOrder,
+        commands = data.commands, save = function() return {} end,
+      })
+      vm:start(nurseKey)
+      for _ = 1, 3000 do if not vm:running() then break end vm:update() end
+    end
+    T.eq(said > 0, true, "story walk: the Goldenrod nurse talks")
     -- Move Reminder: talk to the second NPC in the Move Deleter's house with a
     -- level-20 Chikorita that has forgotten Razor Leaf, and learn it back.
     do

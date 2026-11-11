@@ -198,10 +198,19 @@ def _build(base, legacy, rgbds, work, maps, extra_consts, banks):
                 new_events[name] = defs[name]
                 continue
             if name.endswith("StdScript") and "StdScripts" in sym:
-                # A Legacy-only std script (KantoLevelCapUpdateScript, Hard
-                # Mode only): an id past the table, which gen1recomp's VM
-                # treats as a script that just ends.
-                defs[name] = sym["StdScripts"][1] + 3 * 500
+                # `jumpstd X` assembles to (XStdScript - StdScripts) / 3, and
+                # only the maps are assembled here, so every std label is
+                # unknown to the linker. A vanilla one takes its real slot in
+                # vanilla's table (PokecenterNurseScript is 0); the bug this
+                # replaces sent all of them to the placeholder below, which
+                # silenced every nurse, sign and bookshelf on Story maps.
+                if name in sym and sym[name][0] == sym["StdScripts"][0]:
+                    defs[name] = sym[name][1]
+                else:
+                    # A Legacy-only std script (KantoLevelCapUpdateScript,
+                    # Hard Mode only): an id past the table, which
+                    # gen1recomp's VM treats as a script that just ends.
+                    defs[name] = sym["StdScripts"][1] + 3 * 500
                 continue
             if name in sym:
                 bank, addr = sym[name]
