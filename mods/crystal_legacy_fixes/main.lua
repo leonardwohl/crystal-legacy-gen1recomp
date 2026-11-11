@@ -128,8 +128,14 @@ local function legacyOptionsPage(mod, schema, label)
 
   local function selectable(rows, i) return rows[i] and not rows[i].header end
 
+  -- Drawn the way Crystal's own OPTIONS screen is (src/ui/gen2/OptionsMenu.lua
+  -- drawPanel): one textbox frame, each setting a label line with ":VALUE"
+  -- under it, each mod's name as a plain heading line.
+  local FIRST_LINE, VISIBLE, ARROW_LINE = 2, 7, 16
+
   local function newScreen(game)
-    local OptionRows = require("src.ui.OptionRows")
+    local Chrome = require("src.ui.gen2.Chrome")
+    local Marquee = require("src.ui.Marquee")
     local rows = buildRows()
     local screen = { game = game, rows = rows, index = 1, scroll = 0, isOpaque = true }
     while screen.index < #rows and not selectable(rows, screen.index) do
@@ -142,6 +148,15 @@ local function legacyOptionsPage(mod, schema, label)
         if selectable(self.rows, self.index) then return end
       end
     end
+    local function keepVisible(self)
+      -- A setting at the top of the view keeps its heading above it.
+      local top = self.index
+      if self.rows[top - 1] and self.rows[top - 1].header then top = top - 1 end
+      if top <= self.scroll then self.scroll = top - 1 end
+      if self.index > self.scroll + VISIBLE then self.scroll = self.index - VISIBLE end
+      self.scroll = math.max(0, math.min(self.scroll, math.max(0, #self.rows - VISIBLE)))
+    end
+    keepVisible(screen)
     function screen:update()
       local input = self.game.input
       if input:wasPressed("up") then
@@ -156,10 +171,49 @@ local function legacyOptionsPage(mod, schema, label)
         self.game.stack:pop()
         return
       end
-      self.scroll = OptionRows.clampScroll(self.index, self.scroll, #self.rows, nil)
+      keepVisible(self)
     end
-    function screen:draw()
-      OptionRows.draw(self.game, self.rows, self.index, self.scroll, "A/<>:CHANGE B:DONE")
+    local function fit(text, col, hot, key)
+      local room = 19 - col
+      if hot then return Marquee.scroll(text, room, key) end
+      return Marquee.clip(text, room)
+    end
+    function screen:drawPanel()
+      Chrome.clear()
+      Chrome.textbox(0, 0, Chrome.SCREEN_W - 2, Chrome.SCREEN_H - 2)
+      local y, cursorY = FIRST_LINE, nil
+      for i = self.scroll + 1, math.min(#self.rows, self.scroll + VISIBLE) do
+        local row = self.rows[i]
+        local hot = i == self.index
+        if row.header then
+          Chrome.print(fit(row.label, 1, false, row.label), 1, y)
+        else
+          if hot then cursorY = y end
+          Chrome.print(fit(row.label, 2, hot, row.label), 2, y)
+          local ok, text = pcall(row.value, self.game)
+          Chrome.print(":", 10, y + 1)
+          Chrome.print(fit(ok and tostring(text) or "?", 11, hot, row.label), 11, y + 1)
+        end
+        y = y + 2
+      end
+      if cursorY then Chrome.cursor(1, cursorY) end
+      if self.scroll + VISIBLE < #self.rows then
+        love.graphics.setColor(0, 0, 0, 1)
+        require("src.render.Font").drawCode(Chrome.DOWN_ARROW, 8, ARROW_LINE * 8)
+      end
+    end
+    function screen:draw() self:drawPanel() end
+    function screen:wantsFillScale() return true end
+    function screen:drawsWidescreen() return true end
+    function screen:drawWidescreen(winW, winH)
+      local G = love.graphics
+      Chrome.letterbox(winW, winH, 1, 1, 1)
+      local scale = Chrome.fitScale(winW, winH)
+      G.push()
+      G.translate(Chrome.fitOrigin(winW, winH, scale))
+      G.scale(scale, scale)
+      self:drawPanel()
+      G.pop()
     end
     return screen
   end

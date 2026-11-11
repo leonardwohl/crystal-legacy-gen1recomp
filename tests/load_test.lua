@@ -1252,6 +1252,12 @@ do
       T.eq(saved, true, "options: saved where the MODS menu reads it")
       first.step(game, -1) -- put it back
     end
+    -- Drawn as Crystal's options screen: one frame, no per-row boxes.
+    if page then
+      local okDraw, err = pcall(page.draw, page)
+      if not okDraw then print("options draw: " .. tostring(err)) end
+      T.eq(okDraw, true, "options: page draws")
+    end
     -- Choice rows cycle both ways.
     for _, r in ipairs(page and page.rows or {}) do
       if r.label == "POKEDEX COLOR" then
