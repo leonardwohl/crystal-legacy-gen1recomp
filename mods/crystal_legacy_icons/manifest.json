@@ -17,6 +17,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "Crystal Legacy's per-species party menu icons and colours. Bring your own icons: copy Crystal Legacy's gfx/icons folder into this mod's folder as icons/. Unofficial port of Pokémon Crystal Legacy.",
+  "description": "Crystal Legacy's per-species party menu icons and colours. Bring your own icons: copy Crystal Legacy's gfx/icons folder into this mod's folder as icons/. Falls back to Wilds of Kanto's follower sprites when that mod is installed. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }

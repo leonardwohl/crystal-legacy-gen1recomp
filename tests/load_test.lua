@@ -136,6 +136,26 @@ local CHECKS = {
     T.eq((icon("CYNDAQUIL")), "vanilla.png", "icons: no file -> gen1recomp's normal icon")
     T.eq((icon("CHIKORITA", { species = "CHIKORITA", isEgg = true })), "vanilla.png",
       "icons: eggs keep the egg icon")
+    -- Wilds of Kanto fallback, with a stand-in resolver (no image is decoded).
+    local ex = loader.exports.crystal_legacy_icons
+    ex.setWildsResolver(function(opts)
+      if opts.species == "CYNDAQUIL" then
+        return { image = "wilds/155-" .. (opts.shiny and "shiny" or "normal") .. ".png",
+                 frames = 6, frameWidth = 16, frameHeight = 16 }
+      elseif opts.species == "TOTODILE" then
+        return { image = "wilds/158-hgss.png", frames = 6, frameWidth = 32, frameHeight = 32 }
+      end
+      return { image = "wilds/missing.png", fallback = true }
+    end)
+    local wp = icon("CYNDAQUIL")
+    T.eq(wp, "wilds-icons/wilds/155-normal.png", "icons: Wilds' follower sprite fills in")
+    T.eq(Assets.isComposed(wp), true, "icons: cut into an icon on demand")
+    T.eq((icon("CYNDAQUIL", { species = "CYNDAQUIL", shiny = true })),
+      "wilds-icons/wilds/155-shiny.png", "icons: Wilds' shiny sheet for shiny Pokemon")
+    T.eq((icon("CHIKORITA")), "legacy-icons/CHIKORITA.png", "icons: a copied-in Legacy icon still wins")
+    T.eq((icon("TOTODILE")), "vanilla.png", "icons: non-16x16 Wilds styles keep the normal icon")
+    T.eq((icon("PIDGEY")), "vanilla.png", "icons: Wilds' missing-sprite fallback is not used")
+    ex.setWildsResolver(nil)
   end,
   crystal_legacy_fixes = function()
     local Catching = require("src.battle.gen2.Catching")
