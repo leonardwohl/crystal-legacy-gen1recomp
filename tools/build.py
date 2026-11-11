@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # The shared "CRYSTAL LEGACY" options page, added to every mod with settings.
 LEGACY_OPTIONS = open(os.path.join(ROOT, "tools", "legacy_options.lua"),
                       encoding="utf-8").read()
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 GAME_VERSION = ">=0.4.0 <0.5.0"
 GITHUB = "leonardwohl/crystal-legacy-gen1recomp"
 
