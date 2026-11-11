@@ -227,6 +227,58 @@ local CHECKS = {
     end
     T.eq(ex.dexPalette("BLUE")[2][3], math.floor(27 * 255 / 31 + 0.5), "pokedex: BLUE from predef.pal")
   end,
+  crystal_legacy_screens = function()
+    local ex = loader.exports.crystal_legacy_screens
+    local SummaryMenu = require("src.ui.gen2.SummaryMenu")
+    local mon = { species = "CHIKORITA", level = 12, hp = 30, maxHp = 30, happiness = 140,
+      dvs = { attack = 15, defense = 10, speed = 13, special = 12 },
+      caughtTime = 2, caughtLevel = 5, caughtLocation = 0, moves = {},
+      stats = { hp = 30, attack = 20, defense = 22, specialAttack = 18, specialDefense = 22, speed = 17 } }
+    local pressed
+    local game = { data = data, save = { party = { mon }, unownDex = {} },
+      input = { wasPressed = function(_, b) return b == pressed end } }
+    local ok, menu = pcall(SummaryMenu.new, game, { party = { mon }, index = 1 })
+    T.eq(ok, true, "screens: stats screen opens (" .. tostring(not ok and menu or "") .. ")")
+    if not ok then return end
+    menu.page = SummaryMenu.BLUE_PAGE
+    menu:turnPage(1)
+    T.eq(menu.page, 4, "screens: right from the blue page goes to page 4")
+    menu:turnPage(1)
+    T.eq(menu.page, SummaryMenu.PINK_PAGE, "screens: and wraps to pink after it")
+    menu:turnPage(-1)
+    T.eq(menu.page, 4, "screens: left from pink reaches page 4")
+    local text = {}
+    for _, e in ipairs(menu:placements()) do text[#text + 1] = e.text end
+    text = table.concat(text, "|")
+    T.eq(text:find("DAY", 1, true) ~= nil and text:find("<LV>5", 1, true) ~= nil, true,
+      "screens: met time and level")
+    T.eq(text:find("UNKNOWN LOCATION", 1, true) ~= nil, true, "screens: unknown met location")
+    T.eq(text:find("DVS: ATK|15", 1, true) ~= nil, true, "screens: attack DV")
+    T.eq(text:find("HIDDEN POWER", 1, true), nil, "screens: no Hidden Power before every Unown")
+    for i = 1, 26 do game.save.unownDex[i] = i end
+    text = {}
+    for _, e in ipairs(menu:placements()) do text[#text + 1] = e.text end
+    text = table.concat(text, "|")
+    T.eq(text:find("HIDDEN POWER", 1, true) ~= nil, true, "screens: Hidden Power once every Unown is caught")
+    local tens, ones = ex.powerWords(71)
+    T.eq(tens .. ones, "SEVENTY-ONE", "screens: power in words")
+    T.eq(select(2, ex.powerWords(40)), nil, "screens: round power has no ones word")
+    menu.page = SummaryMenu.BLUE_PAGE
+    text = {}
+    for _, e in ipairs(menu:placements()) do text[#text + 1] = e.text end
+    T.eq(table.concat(text, "|"):find("140/255", 1, true) ~= nil, true, "screens: happiness on the blue page")
+    pressed = "a"
+    menu:update(0)
+    T.eq(menu.page, 4, "screens: A on the blue page goes on to page 4")
+    local closed = false
+    menu.onClose = function() closed = true end
+    menu:update(0)
+    T.eq(closed, true, "screens: A on page 4 closes")
+    pressed = nil
+    local okDraw, err = pcall(menu.draw, menu)
+    if not okDraw then print("screens draw: " .. tostring(err)) end
+    T.eq(okDraw, true, "screens: page 4 draws")
+  end,
   crystal_legacy_icons = function()
     -- Data only: the mod ships Legacy's species -> icon file / palette map.
     local Assets = require("src.render.Assets")
@@ -1283,7 +1335,7 @@ end
 do
   local withSettings = { legacy_hard_mode = "HARD MODE", crystal_legacy_qol = "QUALITY OF LIFE",
     crystal_legacy_fixes = "BUG FIXES", crystal_legacy_icons = "MENU ICONS",
-    crystal_legacy_pokedex = "POKEDEX" }
+    crystal_legacy_pokedex = "POKEDEX", crystal_legacy_screens = "SCREENS" }
   local expected = {}
   for _, id in ipairs(ids) do if withSettings[id] then expected[#expected + 1] = id end end
   if #expected > 0 then

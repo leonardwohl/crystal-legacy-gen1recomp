@@ -27,6 +27,7 @@ only translates their work into gen1recomp's mod format.
 | [Bug Fixes](../mods/crystal_legacy_fixes) | Legacy's fixes for vanilla bugs gen1recomp reproduces: catch bonuses, Fast / Moon / Love Ball, trainer AI (Crystal) | 🧪 new; more after the remaining checks |
 | [Menu Icons](../mods/crystal_legacy_icons) | Legacy's per-species party icons and colours; bring your own icons (copy Crystal Legacy's `gfx/icons` in as `icons/`) | 🧪 new |
 | [Pokédex](../mods/crystal_legacy_pokedex) | Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): SELECT on an entry for Stats, Level-up / TM/HM / Egg moves, Evolution and Area; START for shiny colours; a POKéDEX COLOR setting | 🧪 new |
+| [Screens](../mods/crystal_legacy_screens) | Crystal Legacy's fourth stats page (met location, time and level; DVs; Hidden Power once every Unown is caught) and happiness on the stats screen | 🧪 new |
 | [Story Changes](../mods/crystal_legacy_story) | 131 changed maps: Rocket story, Trainer House, fossils, legendaries, Red rematch, new sprites, dialogue | ✅ ready to try |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes

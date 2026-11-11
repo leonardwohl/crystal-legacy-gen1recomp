@@ -1,0 +1,22 @@
+{
+  "id": "crystal_legacy_screens",
+  "name": "Legacy: Screens",
+  "version": "0.4.0",
+  "api": 2,
+  "games": [
+    "crystal"
+  ],
+  "entry": "main.lua",
+  "profile": "content",
+  "category": "QOL",
+  "game_version": ">=0.4.0 <0.5.0",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "Crystal Legacy's extra stats page (where and when a Pokémon was met, its DVs and Hidden Power) and happiness on the stats screen. Unofficial port of Pokémon Crystal Legacy.",
+  "github": "leonardwohl/crystal-legacy-gen1recomp"
+}

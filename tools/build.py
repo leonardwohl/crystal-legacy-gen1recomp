@@ -1633,6 +1633,38 @@ end
 
 
 # ------------------------------------------------------------------- pokedex
+def build_screens(ctx):
+    import re
+    # gfx/stats/pages.pal: the fourth (orange) palette Legacy adds.
+    pals = []
+    for line in open(os.path.join(ctx["legacy"], "gfx/stats/pages.pal"), encoding="utf-8"):
+        m = re.match(r"\s*RGB\s+(\d+),\s*(\d+),\s*(\d+)", line)
+        if m:
+            pals.append([int(x) for x in m.groups()])
+    data = {"orange": pals[12:16]}
+    body = '''
+  local SCREENS_OPTIONS = {
+    { key = "statsPage", label = "STATS PAGE 4", type = "toggle", default = true },
+  }
+  mod.options:define(SCREENS_OPTIONS)
+  legacyOptionsPage(mod, SCREENS_OPTIONS, "SCREENS")
+  OPT = function(key)
+    local v = mod.options:get(key)
+    if v == nil then return true end
+    return v
+  end
+  legacyStats(mod)'''
+    lines = [
+        "**Stats screen, page 4** (orange, after Nayru62's Ultimate stats pages): where, "
+        "when and at what level the Pokémon was met, and its DVs. Once you've caught "
+        "every Unown, its Hidden Power type and power too, written in the Unown "
+        "alphabet as in Crystal Legacy",
+        "**Happiness** on the blue page",
+        "Toggle: **STATS PAGE 4** (OPTIONS -> CRYSTAL LEGACY, or the MODS menu)",
+    ]
+    return data, body, lines
+
+
 def build_pokedex(ctx):
     """No data of its own: every page reads gen1recomp's live data, so the
     Pokédex shows Crystal Legacy's numbers when Pokémon Changes / Encounter
@@ -1675,6 +1707,209 @@ def build_pokedex(ctx):
     ]
     return data, body, lines
 
+
+SCREENS_RUNTIME = r"""
+local OPT = function() return true end
+
+local function rgb(c) return { math.floor(c[1] * 255 / 31 + 0.5),
+  math.floor(c[2] * 255 / 31 + 0.5), math.floor(c[3] * 255 / 31 + 0.5) } end
+
+-- ------------------------------------------------------------------ stats
+-- Crystal Legacy's stats screen (after Nayru62's Ultimate stats pages):
+-- a fourth, orange page with where, when and at what level the Pokemon was
+-- met, and its DVs -- plus its Hidden Power, written in the Unown alphabet,
+-- once every Unown has been caught. The blue page also shows happiness.
+-- engine/pokemon/stats_screen.asm LoadOrangePage, StatsScreen_PrintHappiness.
+local ORANGE_PAGE = 4
+local TIMES = { "MORN", "DAY", "NITE" }
+local TENS = { [30] = "THIRTY", [40] = "FORTY", [50] = "FIFTY", [60] = "SIXTY", [70] = "SEVENTY" }
+local ONES = { "-ONE", "-TWO", "-THREE", "-FOUR", "-FIVE", "-SIX", "-SEVEN", "-EIGHT", "-NINE" }
+
+local function powerWords(power)
+  local tens = math.floor(power / 10) * 10
+  if tens > 70 then tens = 70 end
+  if tens < 30 then tens = 30 end
+  return TENS[tens], ONES[power - tens]
+end
+
+local function legacyStats(mod)
+  local okS, SummaryMenu = pcall(require, "src.ui.gen2.SummaryMenu")
+  if not (okS and type(SummaryMenu) == "table" and SummaryMenu.pinkPlacements) then
+    mod.log:warn("stats screen not found; the orange page is not added")
+    return
+  end
+  local Chrome = require("src.ui.gen2.Chrome")
+  local Mon = require("src.battle.gen2.Mon")
+  local okB, Battle = pcall(require, "src.battle.gen2.Battle")
+  local okU, Unown = pcall(require, "src.core.gen2.Unown")
+  local BLUE = SummaryMenu.BLUE_PAGE or 3
+  local PINK = SummaryMenu.PINK_PAGE or 1
+
+  -- gfx/stats/pages.pal and stats.pal, the orange entries Legacy adds.
+  if SummaryMenu.PAGE_PALETTES then
+    SummaryMenu.PAGE_PALETTES[ORANGE_PAGE] = { rgb(DATA.orange[1]), rgb(DATA.orange[2]),
+      rgb(DATA.orange[3]), rgb(DATA.orange[4]) }
+  end
+  if SummaryMenu.PAGE_TINTS then SummaryMenu.PAGE_TINTS[ORANGE_PAGE] = rgb(DATA.orange[2]) end
+
+  local function on() return OPT("statsPage") end
+  local function num(v, width, zeros) return Chrome.number(v, width, zeros) end
+  local function put(list, text, x, y)
+    if text ~= nil then list[#list + 1] = { text = tostring(text), x = x, y = y } end
+  end
+
+  local function allUnown(self)
+    local save = self.save or (self.game and self.game.save)
+    if not (okU and save) then return false end
+    local n = 0
+    for _, v in pairs(Unown.dex(save)) do if v and v ~= 0 then n = n + 1 end end
+    return n >= 26
+  end
+
+  local function hiddenPower(self)
+    if not (okB and Battle.hiddenPower and self.mon and self.mon.dvs) then return end
+    local power, kind = Battle.hiddenPower(nil, self.mon)
+    if not power then return end
+    -- TypeNames: the ids are the type constants (PSYCHIC_TYPE for PSYCHIC).
+    local name = (tostring(kind):gsub("_TYPE$", ""):gsub("_", " "))
+    local tens, ones = powerWords(power)
+    return name, (tens or "") .. (ones or "")
+  end
+
+  local function landmark(self, id)
+    if not id or id == 0 or id == 0x7e or id == 0x7f then return nil end
+    local world = self.game and self.game.world
+    if world and world.landmarkName then
+      local ok, name = pcall(world.landmarkName, world, id)
+      if ok and name then return name end
+    end
+  end
+
+  -- engine/pokemon/stats_screen.asm LoadOrangePage.
+  function SummaryMenu:legacyOrangePlacements()
+    local mon = self.mon or {}
+    local out = {}
+    put(out, "MET:", 1, 9)
+    local time = tonumber(mon.caughtTime) or 0
+    put(out, TIMES[time] or "TRADE", 6, 9)
+    local level = tonumber(mon.caughtLevel) or 0
+    if level == Mon.CAUGHT_EGG_LEVEL then level = 5 end -- hatched: EGG_LEVEL
+    if level > 0 then put(out, "<LV>" .. tostring(level), 11, 9) end
+    put(out, landmark(self, tonumber(mon.caughtLocation)) or "UNKNOWN LOCATION", 2, 10)
+    local dvs = mon.dvs or {}
+    local hp = Mon.hpDV and Mon.hpDV(dvs) or 0
+    put(out, "DVS: ATK", 1, 12)
+    put(out, num(dvs.attack or 0, 2, true), 10, 12)
+    put(out, "DEF", 13, 12)
+    put(out, num(dvs.defense or 0, 2, true), 17, 12)
+    put(out, "HP", 1, 13)
+    put(out, num(hp, 2, true), 3, 13)
+    put(out, "SPC", 6, 13)
+    put(out, num(dvs.special or 0, 2, true), 10, 13)
+    put(out, "SPE", 13, 13)
+    put(out, num(dvs.speed or 0, 2, true), 17, 13)
+    return out
+  end
+
+  function SummaryMenu:legacyHiddenPowerLines()
+    if not allUnown(self) then return nil end
+    local kind, words = hiddenPower(self)
+    if not kind then return nil end
+    return { { "HIDDEN POWER", 1, 15 }, { kind, 2, 16 }, { words, 2, 17 } }
+  end
+
+  -- PlaceString_UnownFont: each letter from the Unown font sheet, anything
+  -- else (the hyphen, spaces) from the normal font.
+  local unownSheet
+  local function unownText(self, text, tx, ty, colors)
+    if unownSheet == nil then
+      unownSheet = false
+      local font = self.game and self.game.data and self.game.data.font
+      local okT, TileSheet = pcall(require, "src.ui.gen2.TileSheet")
+      if okT and font and font.imageUnown then
+        unownSheet = TileSheet.new({ path = font.imageUnown, wide = font.unownWide or 3,
+          firstTile = font.unownBase or 0x40, palette = colors })
+      end
+    end
+    for i = 1, #text do
+      local char = text:sub(i, i)
+      local index = okU and Unown.index(char)
+      local drawn = false
+      if unownSheet and index and unownSheet:available() then
+        drawn = unownSheet:draw((self.game.data.font.unownBase or 0x40) + index - 1, tx + i - 1, ty)
+      end
+      if not drawn then Chrome.printThrough(char, tx + i - 1, ty, colors) end
+    end
+  end
+
+  local pinkPlacements = SummaryMenu.pinkPlacements
+  SummaryMenu.pinkPlacements = function(self, ...)
+    if self.page == ORANGE_PAGE then
+      local out = self:legacyOrangePlacements()
+      for _, l in ipairs(self:legacyHiddenPowerLines() or {}) do put(out, l[1], l[2], l[3]) end
+      return out
+    end
+    return pinkPlacements(self, ...)
+  end
+
+  local drawPinkPage = SummaryMenu.drawPinkPage
+  SummaryMenu.drawPinkPage = function(self, ...)
+    if self.page ~= ORANGE_PAGE then return drawPinkPage(self, ...) end
+    local colors = self:lowerColors()
+    self:drawPlacements(self:legacyOrangePlacements(), colors)
+    for _, l in ipairs(self:legacyHiddenPowerLines() or {}) do
+      unownText(self, tostring(l[1]), l[2], l[3], colors)
+    end
+  end
+
+  -- StatsScreen_PrintHappiness on the blue page, in words: the heart Legacy
+  -- uses is a tile of its own stats sheet.
+  local bluePlacements = SummaryMenu.bluePlacements
+  SummaryMenu.bluePlacements = function(self, ...)
+    local out = bluePlacements(self, ...)
+    if on() and self.mon and self.mon.happiness then
+      put(out, "HAPPINESS", 0, 15)
+      put(out, num(self.mon.happiness, 3) .. "/255", 2, 16)
+    end
+    return out
+  end
+
+  local turnPage = SummaryMenu.turnPage
+  SummaryMenu.turnPage = function(self, delta, ...)
+    if not on() then return turnPage(self, delta, ...) end
+    local page = (self.page or PINK) + delta
+    if page > ORANGE_PAGE then page = PINK end
+    if page < PINK then page = ORANGE_PAGE end
+    self.page = page
+  end
+
+  -- A on the blue page goes on to the orange one; A on the orange page closes
+  -- (stats_screen.asm .a_button, with ORANGE_PAGE as the last page).
+  local update = SummaryMenu.update
+  SummaryMenu.update = function(self, dt, ...)
+    local input = self.game and self.game.input
+    if on() and input and not self.moveDetail and not (self.mon and self.mon.isEgg)
+        and input:wasPressed("a") then
+      if self.page == BLUE then self:turnPage(1) return end
+      if self.page == ORANGE_PAGE then self:close() return end
+    end
+    if not on() and self.page == ORANGE_PAGE then self.page = BLUE end
+    return update(self, dt, ...)
+  end
+
+  -- StatsScreen_LoadPageIndicators with ORANGE_PAGE defined: four squares.
+  local indicators = SummaryMenu.drawPageIndicators
+  SummaryMenu.drawPageIndicators = function(self, ...)
+    if not on() then return indicators(self, ...) end
+    for i, tx in ipairs({ 11, 13, 15, 17 }) do
+      self:drawPageSquare(tx, 5, i == self.page, SummaryMenu.PAGE_PALETTES[i])
+    end
+  end
+
+  mod.exports.orangePlacements = function(menu) return SummaryMenu.legacyOrangePlacements(menu) end
+  mod.exports.powerWords = powerWords
+end
+"""
 
 DEX_RUNTIME = r"""
 local GROWTH = {
@@ -2248,6 +2483,11 @@ MODS = [
      "runtime": LEGACY_OPTIONS + DEX_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): "
                 "press SELECT on an entry for Stats, Moves, Evolution and Area."},
+    {"id": "crystal_legacy_screens", "name": "Legacy: Screens",
+     "category": "QOL", "games": ["crystal"], "build": build_screens,
+     "runtime": LEGACY_OPTIONS + SCREENS_RUNTIME, "permissions": ["engine_internals"],
+     "summary": "Crystal Legacy's extra stats page (where and when a Pokémon was met, "
+                "its DVs and Hidden Power) and happiness on the stats screen."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
      "runtime": LEGACY_OPTIONS + QOL_RUNTIME, "permissions": ["engine_internals"],
