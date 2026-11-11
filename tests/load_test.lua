@@ -616,6 +616,25 @@ local CHECKS = {
     local at10 = Mon.experienceForLevel(growth, 10)
     local got = Runtime.call("exp.gain", base, ctxFor(9, at10 - 50))
     T.eq(got, 50, "hard mode: exp stops exactly at the cap")
+    -- A capped Pokemon doesn't count when the exp is divided (cap 10 here).
+    do
+      local Battle = require("src.battle.gen2.Battle")
+      local seen = {}
+      local realGain = Mon.experienceGain
+      Mon.experienceGain = function(def, level, participants, ...)
+        seen[#seen + 1] = participants
+        return realGain(def, level, participants, ...)
+      end
+      local fake = setmetatable({ data = data, events = {}, save = { player = {} },
+        party = {
+          { species = "CHIKORITA", level = 10, hp = 10, experience = at10, moves = {} },
+          { species = "CHIKORITA", level = 5, hp = 10, experience = 100, moves = {} },
+        } }, { __index = Battle })
+      pcall(Battle.giveExperiencePass, fake, { species = "RATTATA", level = 5 },
+        data.pokemon.RATTATA, { 1, 2 }, 2, false)
+      Mon.experienceGain = realGain
+      T.eq(seen[#seen], 1, "hard mode: the capped Pokemon is left out of the split")
+    end
     T.eq(type(data.screens and data.screens.Gen2PackMenu), "table", "hard mode: PACK wrapper registered")
     local candy = data.gen2ItemEffects and data.gen2ItemEffects.RARE_CANDY
     local r = candy and candy.use({ mon = { species = "CHIKORITA", level = 10 }, data = data })

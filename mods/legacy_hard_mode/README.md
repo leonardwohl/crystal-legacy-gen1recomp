@@ -9,7 +9,8 @@ Crystal Legacy's optional Hard Mode for gen1recomp's Crystal. Two switches, in
 
 ## Rules
 
-- **Level caps.** Pokémon at the cap gain no experience, and Rare Candy has no
+- **Level caps.** Pokémon at the cap gain no experience and don't take a share of
+  it (the others split it between fewer, Exp. Share holders too), and Rare Candy has no
   effect on them. Experience also stops exactly at the cap rather than
   overshooting it. The Day-Care follows the same cap: a Pokémon left there
   stops growing at the current cap.

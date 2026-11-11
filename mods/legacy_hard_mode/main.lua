@@ -316,6 +316,31 @@ return function(mod)
     return amount
   end)
 
+  -- engine/battle/core.asm .EvenlyDivideExpAmongParticipants, as Legacy
+  -- changes it: a Pokemon at the cap doesn't count when the exp (and stat exp)
+  -- is divided, so the ones still growing split it between fewer. Both passes
+  -- go through it, the participants' and the EXP.SHARE holders'.
+  local okB, Battle = pcall(require, "src.battle.gen2.Battle")
+  if okB and type(Battle) == "table" and Battle.giveExperiencePass then
+    local pass = Battle.giveExperiencePass
+    Battle.giveExperiencePass = function(self, loser, def, recipients, count, ...)
+      if option("levelCaps") and type(count) == "number" and count >= 2
+          and type(recipients) == "table" then
+        local cap, capped = currentCap(), 0
+        for _, index in ipairs(recipients) do
+          local mon = self.party and self.party[index]
+          if mon and (mon.hp or 0) > 0 and not mon.isEgg and (mon.level or 1) >= cap then
+            capped = capped + 1
+          end
+        end
+        count = math.max(1, count - capped)
+      end
+      return pass(self, loser, def, recipients, count, ...)
+    end
+  else
+    mod.log:warn("Battle.giveExperiencePass not found; capped Pokemon still take an exp share")
+  end
+
   -- Rare Candy has no effect at the cap.
   local candy = mod.content.item_effects:get("RARE_CANDY")
   if candy and type(candy.use) == "function" then

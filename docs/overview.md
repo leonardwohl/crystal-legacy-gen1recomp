@@ -33,8 +33,8 @@ Every mod works on its own, and they can be combined freely. Trainer Changes
 and Rematches are written so that either can be installed without the other.
 
 The headbutt tree and Rock Smash tables are identical in Crystal Legacy and
-vanilla, so there is nothing to port there. Exp. Share changes are left to existing
-gen1recomp mods; the Pokédex is in Legacy: Pokédex.
+vanilla, so there is nothing to port there. Crystal Legacy leaves the Exp. Share
+itself as it is in vanilla.
 
 ## Install
 

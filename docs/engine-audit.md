@@ -33,7 +33,7 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 | Pokémon Center nurse skips her speech after the first visit | `engine/events/std_scripts.asm` | ✅ | Quality of Life |
 | Day-Care keeps the experience earned (vanilla already heals; it reset exp to the level's minimum) | `engine/pokemon/move_mon.asm` | ✅ | Quality of Life |
 | Move Reminder | `engine/events/move_reminder.asm` | ✅ | Story Changes |
-| Exp. Share rework | various | ➖ left to other gen1recomp mods (by request) | – |
+| Exp. split: Pokémon at the level cap are left out when exp is divided (Exp. Share itself is unchanged from vanilla) | `engine/battle/core.asm` | ✅ with the level caps | Legacy Hard Mode |
 | Pokédex pages, shiny view, Pokédex colour | various | ✅ Legacy: Pokédex | – |
 
 ## Vanilla bug fixes
