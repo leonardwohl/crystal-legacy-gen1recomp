@@ -175,6 +175,16 @@ def resolve_moves(leg, l, report):
                     mon["moves"] = fixed
 
 
+def mon_extras(mon):
+    """What a trainer Pokémon carries beyond level/species/item/moves."""
+    ex = {k: mon[k] for k in ("dvs", "statExp", "happiness") if k in mon}
+    # A nickname only when it isn't just the species' name.
+    nick = mon.get("nickname")
+    if nick and nick.upper() != mon["species"].replace("_", " "):
+        ex["nickname"] = nick
+    return ex
+
+
 def diff_trainers(base, leg, report):
     b, l = parse.trainer_parties(base), parse.trainer_parties(leg)
     resolve_moves(leg, l, report)
@@ -195,7 +205,7 @@ def diff_trainers(base, leg, report):
                 if "moves" in mon:
                     row["moves"] = mon["moves"]
                 party.append(row)
-                ex = {k: mon[k] for k in ("dvs", "statExp", "happiness") if k in mon}
+                ex = mon_extras(mon)
                 if ex:
                     extras.setdefault(cls, {}).setdefault(i + 1, {})[slot] = ex
             has_item = "item" in pt["flags"]

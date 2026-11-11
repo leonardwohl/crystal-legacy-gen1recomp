@@ -323,7 +323,11 @@ def trainer_parties(root):
             while toks[i][1] != "-1":
                 mon = {"level": evaluate(take()), "species": take()}
                 if "nickname" in flags:
-                    mon["nickname"] = take().strip('"').rstrip("@")
+                    # Legacy writes "@NAME@": its reader drops the first byte
+                    # (read_trainer_party.asm), so the name is what follows.
+                    nick = take().strip('"')
+                    nick = nick[1:] if nick.startswith("@") else nick
+                    mon["nickname"] = nick.split("@")[0]
                 if "dvs" in flags:
                     a, b = _dv_byte(take()), _dv_byte(take())
                     mon["dvs"] = {"attack": a >> 4, "defense": a & 15,

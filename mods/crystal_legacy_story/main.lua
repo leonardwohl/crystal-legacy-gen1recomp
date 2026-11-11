@@ -206,6 +206,36 @@ local DATA = {
         },
         [6] = {
           dvs = { attack = 14, defense = 14, special = 15, speed = 15 },
+          nickname = "FURBALL",
+          statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
+        },
+      },
+    },
+    PKMNTRAINERF = {
+      [1] = {
+        [1] = {
+          dvs = { attack = 13, defense = 12, special = 13, speed = 13 },
+          statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
+        },
+        [2] = {
+          dvs = { attack = 13, defense = 12, special = 13, speed = 13 },
+          statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
+        },
+        [3] = {
+          dvs = { attack = 13, defense = 12, special = 13, speed = 13 },
+          statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
+        },
+        [4] = {
+          dvs = { attack = 13, defense = 12, special = 13, speed = 13 },
+          statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
+        },
+        [5] = {
+          dvs = { attack = 13, defense = 12, special = 13, speed = 13 },
+          statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
+        },
+        [6] = {
+          dvs = { attack = 13, defense = 12, special = 15, speed = 15 },
+          nickname = "Cinderella",
           statExp = { attack = 65025, defense = 65025, hp = 65025, special = 65025, speed = 65025 },
         },
       },
@@ -43744,6 +43774,7 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
         if mon then
           if extra.dvs then mon.dvs = extra.dvs end
           if extra.statExp then mon.statExp = extra.statExp end
+          if extra.nickname then mon.nickname = extra.nickname end
           if extra.happiness then mon.happiness = extra.happiness end
         end
       end
@@ -44039,6 +44070,7 @@ return function(mod)
           if mon then
             if extra.dvs then mon.dvs = extra.dvs end
             if extra.statExp then mon.statExp = extra.statExp end
+            if extra.nickname then mon.nickname = extra.nickname end
           end
         end
       end

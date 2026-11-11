@@ -16,7 +16,7 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 | AI follows the Ghost/Dark split (Counter, Mirror Coat, screens) | `engine/battle/ai/scoring.asm` | ✅ gen1recomp's AI reads the same type categories | Ghost/Dark Switch |
 | Hard Mode: level caps (battles, Rare Candy, Day-Care), Set style, no items vs trainers | many, `engine/events/happiness_egg.asm` | ✅ | Legacy Hard Mode |
 | Hardcore Mode: no healing fainted mons (Center, items, Day-Care), release from PC, reset on whiteout | `engine/pokemon/health.asm`, `engine/events/{daycare,whiteout}.asm`, `engine/pokemon/bills_pc.asm`, `engine/items/item_effects.asm` | ✅ opt-in toggle, including the must-win Cherrygrove rival fight | Legacy Hard Mode |
-| Trainer custom DVs, stat exp, happiness, nicknames | `engine/battle/read_trainer_party.asm`, `core.asm` | ✅ DVs / stat exp; nicknames skipped (cosmetic) | Trainer Changes, Rematches |
+| Trainer custom DVs, stat exp, happiness, nicknames | `engine/battle/read_trainer_party.asm`, `core.asm` | ✅ DVs, stat exp and nicknames (Craig's FURBALL, Weebra's Cinderella) | Trainer Changes, Rematches, Story Changes |
 | Trainer **class** DVs (gym leaders and others get better DVs) | `data/trainers/dvs.asm` | ✅ applied where a team has no DVs of its own | Trainer Changes |
 | Trainer classes no longer carry healing items | `data/trainers/attributes.asm` | ✅ | Trainer Changes |
 | King's Rock, Metal Coat, Dragon Scale, Up-Grade, Brick Piece are used like evolution stones | `engine/items/item_effects.asm`, `data/items/attributes.asm` | ✅ | Pokémon Changes |

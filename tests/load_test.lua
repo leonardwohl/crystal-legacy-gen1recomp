@@ -757,6 +757,19 @@ local CHECKS = {
     end
     for _, m in ipairs(missing) do print("missing: " .. m) end
     T.eq(#missing, 0, "story: every referenced script/text/movement exists")
+    -- Trainer nicknames and the extras of the classes Legacy adds.
+    local function party(class, member, n)
+      local p = {}
+      for i = 1, n do p[i] = {} end
+      return Runtime.call("trainer.party", function(_, _, pt) return pt end, class, member, p)
+    end
+    T.eq(party("CAL", "CRAIG", 6)[6].nickname, "FURBALL", "story: Craig's Arcanine is FURBALL")
+    T.eq(party("CAL", "CRAIG", 6)[1].nickname, nil, "story: species-name nicknames stay plain")
+    local weebra = party("PKMNTRAINERF", "PKMNTRAINERF1", 6)
+    T.eq(weebra[6].nickname, "Cinderella",
+      "story: Weebra's Hitmontop is Cinderella")
+    T.eq(weebra[1].dvs ~= nil and weebra[1].statExp ~= nil, true,
+      "story: Weebra's team keeps its DVs and stat exp")
     -- Scene 0 is each map's first-visit cutscene (Elm's intro, Mr. Pokemon):
     -- it must survive the build and point at Legacy's script.
     for _, id in ipairs({ "ELMS_LAB", "MR_POKEMONS_HOUSE" }) do

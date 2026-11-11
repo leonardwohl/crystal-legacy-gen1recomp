@@ -44,6 +44,7 @@ local function wrapTrainerExtras(mod, extras, memberIndex)
         if mon then
           if extra.dvs then mon.dvs = extra.dvs end
           if extra.statExp then mon.statExp = extra.statExp end
+          if extra.nickname then mon.nickname = extra.nickname end
           if extra.happiness then mon.happiness = extra.happiness end
         end
       end

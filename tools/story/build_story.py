@@ -232,6 +232,13 @@ def main():
         row["id"] = legacy_parties[cls]["members"][idx - 1] \
             if idx <= len(legacy_parties[cls]["members"]) else "%s_STORY%d" % (cls, idx)
         parties.append({"class": cls, "row": row})
+    # Classes Legacy adds aren't in the diff, so read their extras directly.
+    for c in NEW_CLASSES:
+        for i, pt in enumerate(legacy_parties[c["id"]]["parties"], 1):
+            for slot, mon in enumerate(pt["party"], 1):
+                ex = D.mon_extras(mon)
+                if ex:
+                    extras.setdefault(c["id"], {}).setdefault(i, {})[slot] = ex
     for cls, by in extras.items():
         for idx, slots in by.items():
             if any(c["id"] == cls for c in NEW_CLASSES) or (cls, idx) in EXTRA_PARTIES:
@@ -613,6 +620,7 @@ return function(mod)
           if mon then
             if extra.dvs then mon.dvs = extra.dvs end
             if extra.statExp then mon.statExp = extra.statExp end
+            if extra.nickname then mon.nickname = extra.nickname end
           end
         end
       end
