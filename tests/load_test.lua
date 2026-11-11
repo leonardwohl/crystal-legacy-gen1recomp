@@ -278,6 +278,37 @@ local CHECKS = {
     local okDraw, err = pcall(menu.draw, menu)
     if not okDraw then print("screens draw: " .. tostring(err)) end
     T.eq(okDraw, true, "screens: page 4 draws")
+    -- Trainer card: Legacy's face colours, A from page 2 to Kanto, badge tables.
+    local TrainerCard = require("src.ui.gen2.TrainerCard")
+    local cardGame = { data = data, input = game.input,
+      save = { player = { badges = { ZEPHYR = true }, kantoBadges = { BOULDER = true } } } }
+    local function two(n) return { { n, n, n }, { n + 1, n + 1, n + 1 } } end
+    local okCard, card = pcall(TrainerCard.new, cardGame, {
+      menuGfx = { trainerCard = { card = "none.png", status = "none.png", leaders = "none.png",
+        badges = "none.png", leaderClasses = { "FALKNER", "BUGSY", "WHITNEY", "MORTY",
+          "CHUCK", "JASMINE", "PRYCE" }, paletteZones = {} } },
+      palettes = { trainers = { PLAYER = two(10), FALKNER = two(20), BUGSY = two(30),
+        WHITNEY = two(40), MORTY = two(50), CHUCK = two(60), JASMINE = two(70), PRYCE = two(80) } } })
+    T.eq(okCard, true, "screens: trainer card opens")
+    if okCard and card.gfx then
+      T.eq(card.legacy ~= nil, true, "screens: Legacy card set up")
+      card.page = 2
+      local trainers = card.palettes and card.palettes.trainers
+      if trainers and trainers.BUGSY then
+        T.eq(card:colorsAt(8, 11)[2][1], card:pair(trainers.BUGSY)[2][1],
+          "screens: Bugsy's face in his colours")
+      end
+      pressed = "a"
+      card:update(0)
+      T.eq(card.page, 3, "screens: A on page 2 goes on to Kanto")
+      pressed = nil
+      -- The harness's stub images stop the engine's own tile drawing; only an
+      -- error raised in this mod's code counts.
+      local okC, errC = pcall(card.draw, card)
+      local ours = not okC and tostring(errC):find("crystal_legacy_screens", 1, true)
+      if ours then print("card draw: " .. tostring(errC)) end
+      T.eq(not ours, true, "screens: Kanto page draws")
+    end
   end,
   crystal_legacy_icons = function()
     -- Data only: the mod ships Legacy's species -> icon file / palette map.

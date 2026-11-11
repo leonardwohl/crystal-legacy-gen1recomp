@@ -1642,9 +1642,52 @@ def build_screens(ctx):
         if m:
             pals.append([int(x) for x in m.groups()])
     data = {"orange": pals[12:16]}
+    # Legacy's badge palettes and OAM templates (engine/menus/trainer_card.asm).
+    def badge_pals(name):
+        out = []
+        for line in open(os.path.join(ctx["legacy"], "gfx/trainer_card", name), encoding="utf-8"):
+            nums = [int(n) for n in re.findall(r"\d+", line.split(";")[0])]
+            if len(nums) == 12:
+                out.append([nums[0:3], nums[3:6], nums[6:9], nums[9:12]])
+        return out
+    data["johtoBadgePals"] = badge_pals("johto_badges.pal")
+    data["kantoBadgePals"] = badge_pals("kanto_badges.pal")
+    src = open(os.path.join(ctx["legacy"], "engine/menus/trainer_card.asm"), encoding="utf-8").read()
+
+    def oam(label):
+        block = src.split(label + ":", 1)[1].split("\n\n\n", 1)[0]
+        block = block.split("CardStatusGFX", 1)[0].split("TrainerCard_", 1)[0]
+        rows = []
+        for line in block.splitlines():
+            line = line.split(";")[0].strip()
+            if not line.startswith("db"):
+                continue
+            vals = []
+            for part in line[2:].split(","):
+                part = part.strip()
+                v = 0
+                for term in part.split("|"):
+                    term = term.strip().strip("()")
+                    if term.startswith("$"):
+                        v |= int(term[1:], 16)
+                    elif term == "1 << 7":
+                        v |= 0x80
+                    else:
+                        v |= int(term)
+                vals.append(v)
+            rows.append(vals)
+        out = []
+        for i in range(0, len(rows), 3):
+            head, a, b = rows[i], rows[i + 1], rows[i + 2]
+            out.append({"y": head[0] - 16, "x": head[1] - 8, "palette": head[2], "frames": a + b})
+        return out
+    data["johtoOam"] = oam("TrainerCard_JohtoBadgesOAM")
+    data["kantoOam"] = oam("TrainerCard_KantoBadgesOAM")
+    assert len(data["johtoOam"]) == 8 and len(data["kantoOam"]) == 8, "badge OAM tables"
     body = '''
   local SCREENS_OPTIONS = {
     { key = "statsPage", label = "STATS PAGE 4", type = "toggle", default = true },
+    { key = "trainerCard", label = "TRAINER CARD", type = "toggle", default = true },
   }
   mod.options:define(SCREENS_OPTIONS)
   legacyOptionsPage(mod, SCREENS_OPTIONS, "SCREENS")
@@ -1653,7 +1696,8 @@ def build_screens(ctx):
     if v == nil then return true end
     return v
   end
-  legacyStats(mod)'''
+  legacyStats(mod)
+  legacyCard(mod)'''
     lines = [
         "**Stats screen, page 4** (orange, after Nayru62's Ultimate stats pages): where, "
         "when and at what level the Pokémon was met, and its DVs. Once you've caught "
@@ -1661,6 +1705,15 @@ def build_screens(ctx):
         "alphabet as in Crystal Legacy",
         "**Happiness** on the blue page",
         "Toggle: **STATS PAGE 4** (OPTIONS -> CRYSTAL LEGACY, or the MODS menu)",
+        "**Trainer card**: every badge in its own colours and each leader's face in "
+        "their colours; page 3 becomes a real Kanto page, with Kanto's leaders and the "
+        "Kanto badges you hold (vanilla redraws Johto's). A on page 2 goes on to it. "
+        "Toggle: **TRAINER CARD**",
+        "The leader faces and badge pictures are Crystal Legacy's art. Copy "
+        "`johto_leaders.png`, `johto_badges.png`, `kanto_leaders.png` and "
+        "`kanto_badges.png` from Crystal Legacy's `gfx/trainer_card` into this mod's "
+        "folder as `card/`. Without them the badges are still coloured, and page 3 "
+        "stays as in vanilla",
     ]
     return data, body, lines
 
@@ -1908,6 +1961,183 @@ local function legacyStats(mod)
 
   mod.exports.orangePlacements = function(menu) return SummaryMenu.legacyOrangePlacements(menu) end
   mod.exports.powerWords = powerWords
+end
+
+-- ------------------------------------------------------------ trainer card
+-- Crystal Legacy's trainer card (engine/menus/trainer_card.asm,
+-- engine/gfx/cgb_layouts.asm _CGB_TrainerCard / _CGB_TrainerCardKanto):
+-- every badge in its own colours, each leader's face in that leader's colours,
+-- and page 3 as a real Kanto page -- Kanto's leaders and badges, lit by the
+-- Kanto badges you hold. The faces and badge pictures are Crystal Legacy's
+-- art, read from this mod's card/ folder when you copy them in; without them
+-- the vanilla pictures are coloured and page 3 stays as it is in vanilla.
+local JOHTO_ORDER = { "ZEPHYR", "HIVE", "PLAIN", "FOG", "MINERAL", "STORM", "GLACIER", "RISING" }
+local KANTO_ORDER = { "BOULDER", "CASCADE", "THUNDER", "RAINBOW", "SOUL", "MARSH", "VOLCANO", "EARTH" }
+-- The eight BG palettes each page loads, by trainer class (PLAYER is
+-- CHRIS), and the 3x3 face boxes they colour, {x, y, palette slot 0-7}.
+local JOHTO_PALS = { "PLAYER", "FALKNER", "BUGSY", "WHITNEY", "MORTY", "CHUCK", "JASMINE", "PRYCE" }
+local KANTO_PALS = { "PLAYER", "FALKNER", "BROCK", "LT_SURGE", "SABRINA", "JANINE", "BLAINE", "BLUE" }
+local JOHTO_FACES = { { 3, 10, 1 }, { 7, 10, 2 }, { 11, 10, 3 }, { 15, 10, 4 },
+  { 3, 13, 5 }, { 7, 13, 6 }, { 11, 13, 7 }, { 15, 13, 1 } }
+local KANTO_FACES = { { 3, 10, 2 }, { 7, 10, 0 }, { 11, 10, 3 }, { 15, 10, 3 },
+  { 3, 13, 5 }, { 7, 13, 4 }, { 11, 13, 6 }, { 15, 13, 7 } }
+
+local function legacyCard(mod)
+  local okT, TrainerCard = pcall(require, "src.ui.gen2.TrainerCard")
+  if not (okT and type(TrainerCard) == "table" and TrainerCard.drawBadges) then
+    mod.log:warn("trainer card not found; Legacy's card is not applied")
+    return
+  end
+  local okA, Assets = pcall(require, "src.render.Assets")
+  local GbcPalette = require("src.render.GbcPalette")
+  local TileSheet = require("src.ui.gen2.TileSheet")
+  local function on() return OPT("trainerCard") end
+
+  local function present(file)
+    local ok, info = pcall(mod.info, mod, "card/" .. file)
+    return ok and type(info) == "table" and info.type == "file"
+  end
+  -- Legacy's PNGs as the engine's own sheets are made: four greys, and
+  -- colour 0 see-through on the badges, which are sprites.
+  local function sheetPath(file, sprite)
+    if not (okA and Assets.compose and present(file)) then return nil end
+    local key = "legacy-card/" .. file
+    Assets.compose(key, function()
+      local img = Assets.imageData(mod.path .. "/card/" .. file)
+      img:mapPixel(function(_, _, r, g, b, a)
+        local v = (r + g + b) / 3
+        local shade = v > 0.83 and 1 or v > 0.5 and 2 / 3 or v > 0.17 and 1 / 3 or 0
+        if sprite and shade == 1 then return 1, 1, 1, 0 end
+        return shade, shade, shade, 1
+      end)
+      return img
+    end)
+    return key
+  end
+  local ART = {}
+  local function art()
+    if ART.done then return ART end
+    ART.done = true
+    ART.johtoLeaders = sheetPath("johto_leaders.png")
+    ART.johtoBadges = sheetPath("johto_badges.png", true)
+    ART.kantoLeaders = sheetPath("kanto_leaders.png")
+    ART.kantoBadges = sheetPath("kanto_badges.png", true)
+    return ART
+  end
+  local function pal(c) return { rgb(c[1]), rgb(c[2]), rgb(c[3]), rgb(c[4]) } end
+
+  local new = TrainerCard.new
+  TrainerCard.new = function(game, opts, ...)
+    local self = new(game, opts, ...)
+    if not (on() and self and self.leaders and self.gfx) then return self end
+    local a = art()
+    local function sheet(path, from, opts2)
+      if not path then return nil end
+      return TileSheet.new({ path = path, wide = opts2.wide, firstTile = opts2.firstTile,
+        paletteFor = from and from.paletteFor, palette = opts2.palette })
+    end
+    local g = self.gfx
+    self.legacy = {
+      johtoLeaders = sheet(a.johtoLeaders, self.leaders, { wide = g.leadersWide or 10,
+        firstTile = g.leadersFirstTile or 0x29 }) or self.leaders,
+      kantoLeaders = sheet(a.kantoLeaders, self.leaders, { wide = g.leadersWide or 10,
+        firstTile = g.leadersFirstTile or 0x29 }),
+      johtoBadges = sheet(a.johtoBadges, nil, { wide = g.badgesWide or 2, firstTile = 0 })
+        or self.badges,
+      kantoBadges = sheet(a.kantoBadges, nil, { wide = g.badgesWide or 2, firstTile = 0 }),
+    }
+    return self
+  end
+
+  local function kantoReady(self)
+    return self.legacy and self.legacy.kantoLeaders and self.legacy.kantoLeaders:available()
+      and self.legacy.kantoBadges and self.legacy.kantoBadges:available()
+  end
+
+  -- Face colours: the page's own leader palettes in Legacy's 3x3 boxes.
+  local colorsAt = TrainerCard.colorsAt
+  TrainerCard.colorsAt = function(self, tx, ty, ...)
+    if not (self.legacy and (self.page or 1) >= 2 and ty >= 10 and ty <= 15) then
+      return colorsAt(self, tx, ty, ...)
+    end
+    local kanto = self.page == 3 and kantoReady(self)
+    local faces, classes = kanto and KANTO_FACES or JOHTO_FACES, kanto and KANTO_PALS or JOHTO_PALS
+    for _, f in ipairs(faces) do
+      if tx >= f[1] and tx < f[1] + 3 and ty >= f[2] and ty < f[2] + 3 then
+        local trainers = self.palettes and self.palettes.trainers
+        local colours = trainers and self:pair(trainers[classes[f[3] + 1]])
+        if colours then return colours end
+      end
+    end
+    -- Outside the faces: the border's colours, as the attrmap fill leaves them.
+    return colorsAt(self, 0, 0, ...)
+  end
+
+  -- TrainerCard_Page2_3_AnimateBadges with Legacy's per-badge palettes.
+  local function drawBadgeSprites(self, sheet, oam, palettes, order, owned)
+    if not (sheet and sheet:available()) then return end
+    local G = love.graphics
+    local frame = math.floor((self.frames or 0) / 8) % 8
+    for i, obj in ipairs(oam) do
+      local name = order[i]
+      if owned[name] or owned[i] then
+        local tile = obj.frames[frame + 1] or 0
+        -- The 2x2 badge: the frame's first byte is the top-left tile id,
+        -- with Legacy's flip bits on it; the other three follow it.
+        local flip = tile >= 0x80
+        local base = flip and (tile - 0x80) or tile
+        local body = function()
+          for _, c in ipairs({ { 0, 0, 0 }, { 1, 0, 1 }, { 0, 1, 2 }, { 1, 1, 3 } }) do
+            local quad = sheet:quad(base + c[3])
+            if quad then
+              local px = obj.x + (flip and (1 - c[1]) or c[1]) * 8
+              G.draw(sheet:image(), quad, px + (flip and 8 or 0), obj.y + c[2] * 8, 0,
+                flip and -1 or 1, 1)
+            end
+          end
+        end
+        G.setColor(1, 1, 1, 1)
+        local colours = pal(palettes[obj.palette + 1] or palettes[1])
+        if GbcPalette.available() then GbcPalette.with(colours, body) else body() end
+      end
+    end
+  end
+
+  local drawBadges = TrainerCard.drawBadges
+  TrainerCard.drawBadges = function(self, names, owned, ...)
+    if not self.legacy then return drawBadges(self, names, owned, ...) end
+    local kanto = self.page == 3 and kantoReady(self)
+    local leaders = self.leaders
+    local badges = self.badges
+    self.leaders = kanto and self.legacy.kantoLeaders or self.legacy.johtoLeaders
+    -- No badge sprites from the engine's pass: Legacy's are drawn below.
+    self.badges = nil
+    local ok, err = pcall(drawBadges, self, names, owned, ...)
+    self.leaders, self.badges = leaders, badges
+    if not ok then error(err, 0) end
+    local player = (self.save and self.save.player) or {}
+    if kanto then
+      drawBadgeSprites(self, self.legacy.kantoBadges, DATA.kantoOam, DATA.kantoBadgePals,
+        KANTO_ORDER, player.kantoBadges or {})
+    else
+      drawBadgeSprites(self, self.legacy.johtoBadges, DATA.johtoOam, DATA.johtoBadgePals,
+        JOHTO_ORDER, owned or player.badges or {})
+    end
+  end
+
+  -- Page 2's A goes on to Kanto once you hold a Kanto badge; page 3's A quits.
+  local update = TrainerCard.update
+  TrainerCard.update = function(self, dt, ...)
+    local input = self.game and self.game.input
+    if self.legacy and input and input:wasPressed("a") and self.page == 2
+        and self:pages() >= 3 then
+      self.page = 3
+      return
+    end
+    return update(self, dt, ...)
+  end
+
+  mod.exports.cardArt = function() return art() end
 end
 """
 
@@ -2487,7 +2717,8 @@ MODS = [
      "category": "QOL", "games": ["crystal"], "build": build_screens,
      "runtime": LEGACY_OPTIONS + SCREENS_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's extra stats page (where and when a Pokémon was met, "
-                "its DVs and Hidden Power) and happiness on the stats screen."},
+                "its DVs and Hidden Power), happiness on the stats screen, and its "
+                "trainer card: coloured badges and a real Kanto page."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
      "runtime": LEGACY_OPTIONS + QOL_RUNTIME, "permissions": ["engine_internals"],

@@ -36,6 +36,7 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 | Exp. split: Pokémon at the level cap are left out when exp is divided (Exp. Share itself is unchanged from vanilla) | `engine/battle/core.asm` | ✅ with the level caps | Legacy Hard Mode |
 | Pokédex pages, shiny view, Pokédex colour | various | ✅ Legacy: Pokédex | – |
 | Stats screen: fourth (orange) page, happiness on the blue page | `engine/pokemon/stats_screen.asm` | ✅ | Legacy: Screens |
+| Trainer card: coloured badges, leaders in their colours, a real Kanto page | `engine/menus/trainer_card.asm`, `engine/gfx/cgb_layouts.asm` | ✅ (the faces and badge art are Legacy's, copied in by the player) | Legacy: Screens |
 
 ## Vanilla bug fixes
 
@@ -74,6 +75,5 @@ its source. Ported fixes live in **Legacy: Bug Fixes**.
 
 ## Presentation only (not ported)
 
-Per-species menu icons and their palettes (now in Legacy: Menu Icons),
-trainer card, battle weather icon, hidden-TM move names,
+Per-species menu icons and their palettes (now in Legacy: Menu Icons), battle weather icon, hidden-TM move names,
 naming screen and map sign graphics, title and credits, text engine tweaks.

@@ -17,6 +17,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "Crystal Legacy's extra stats page (where and when a Pokémon was met, its DVs and Hidden Power) and happiness on the stats screen. Unofficial port of Pokémon Crystal Legacy.",
+  "description": "Crystal Legacy's extra stats page (where and when a Pokémon was met, its DVs and Hidden Power), happiness on the stats screen, and its trainer card: coloured badges and a real Kanto page. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }
