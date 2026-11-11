@@ -28,4 +28,4 @@ Seasick
 `leonardwohl/crystal-legacy-gen1recomp`, and pick the mods you want. Or grab
 the zips from [Releases](https://github.com/leonardwohl/crystal-legacy-gen1recomp/releases).
 
-More detail: [docs/overview.md](docs/overview.md) · engine changes: [docs/engine-audit.md](docs/engine-audit.md).
+Full credits: [CREDITS.md](CREDITS.md) · more detail: [docs/overview.md](docs/overview.md) · engine changes: [docs/engine-audit.md](docs/engine-audit.md).

@@ -119,6 +119,31 @@ Runtime.emit("game.ready", { game = { data = data } })
 local p, enc = data.pokemon, data.gen2Encounters
 local trainers = data.gen2Trainers.classes
 local CHECKS = {
+  crystal_legacy_pokedex = function()
+    local ex = loader.exports.crystal_legacy_pokedex
+    local lines = ex and ex.statsLines(data, "CHIKORITA")
+    local text = {}
+    for _, l in ipairs(lines or {}) do text[#text + 1] = l[3] end
+    local all = table.concat(text, " | ")
+    T.eq(all:find("No.152 CHIKORITA", 1, true) ~= nil, true, "pokedex: stats header")
+    T.eq(all:find("GRASS", 1, true) ~= nil, true, "pokedex: types")
+    local hp = data.pokemon.CHIKORITA.baseStats.hp
+    T.eq(all:find("HP   " .. hp, 1, true) ~= nil, true, "pokedex: base HP from the live data")
+    T.eq(all:find("TOTAL", 1, true) ~= nil, true, "pokedex: stat total")
+    T.eq(all:find("#", 1, true), nil, "pokedex: no characters the Gen 2 font lacks")
+    for _, l in ipairs(lines or {}) do
+      T.eq(#l[3] + l[1] <= 19, true, "pokedex: '" .. l[3] .. "' fits inside the box")
+    end
+    -- SELECT on an entry opens the pages; B goes back to the entry.
+    local PokedexMenu = require("src.ui.gen2.PokedexMenu")
+    local pressed
+    local fake = { view = "entry", page = 1, game = { input = {
+      wasPressed = function(_, b) return b == pressed end } } }
+    pressed = "select" PokedexMenu.update(fake)
+    T.eq(fake.view, "legacy", "pokedex: SELECT opens the Legacy pages")
+    pressed = "b" PokedexMenu.update(fake)
+    T.eq(fake.view, "entry", "pokedex: B goes back to the entry")
+  end,
   crystal_legacy_icons = function()
     -- Data only: the mod ships Legacy's species -> icon file / palette map.
     local Assets = require("src.render.Assets")

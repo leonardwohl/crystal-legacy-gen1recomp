@@ -1552,6 +1552,133 @@ end
 """
 
 
+# ------------------------------------------------------------------- pokedex
+def build_pokedex(ctx):
+    """No data of its own: every page reads gen1recomp's live data, so the
+    Pokédex shows Crystal Legacy's numbers when Pokémon Changes / Encounter
+    Changes are installed, and vanilla's otherwise."""
+    body = '''
+  legacyPokedex(mod)'''
+    lines = [
+        "Crystal Legacy's extra Pokédex pages, after Nayru62's Pokédex (see CREDITS.md)",
+        "On a Pokédex entry, press **SELECT** for the extra pages; **SELECT** or "
+        "**◀▶** moves between them and **B** goes back to the entry",
+        "**Stats:** types, base stats and their total, catch rate, base exp, growth "
+        "rate, egg groups, gender ratio and hatch steps",
+        "Coming next: Moves, Evolution and Area pages",
+        "Shows whatever data is loaded: with Legacy: Pokémon Changes installed, "
+        "Crystal Legacy's stats; otherwise vanilla's",
+    ]
+    return {}, body, lines
+
+
+DEX_RUNTIME = r"""
+local GROWTH = {
+  GROWTH_MEDIUM_FAST = "MEDIUM FAST", GROWTH_SLIGHTLY_FAST = "SLIGHTLY FAST",
+  GROWTH_SLIGHTLY_SLOW = "SLIGHTLY SLOW", GROWTH_MEDIUM_SLOW = "MEDIUM SLOW",
+  GROWTH_FAST = "FAST", GROWTH_SLOW = "SLOW",
+}
+-- constants/pokemon_data_constants.asm GENDER_*: the female share in 256ths.
+local GENDER = { [0] = "MALE ONLY", [31] = "M7 : F1", [63] = "M3 : F1",
+  [127] = "M1 : F1", [191] = "M1 : F3", [254] = "FEMALE ONLY", [255] = "UNKNOWN" }
+
+local function eggGroupName(id)
+  return (tostring(id):gsub("^EGG_", ""):gsub("_", " "))
+end
+
+local function typeLine(types)
+  local a, b = types and types[1], types and types[2]
+  if not a then return "" end
+  if not b or b == a then return a end
+  return a .. "/" .. b
+end
+
+local function pad(s, n)
+  s = tostring(s)
+  return s .. string.rep(" ", math.max(0, n - #s))
+end
+
+-- The Stats page as lines of text (also what the tests read).
+local function statsLines(data, species)
+  local def = data and data.pokemon and data.pokemon[species]
+  if not def then return nil end
+  local s = def.baseStats or {}
+  local total = (s.hp or 0) + (s.attack or 0) + (s.defense or 0) + (s.speed or 0)
+    + (s.specialAttack or 0) + (s.specialDefense or 0)
+  local eggs = def.eggGroups or {}
+  local egg2 = (eggs[2] and eggs[2] ~= eggs[1]) and eggGroupName(eggs[2]) or ""
+  local cycles = tonumber(def.eggSteps) or 0
+  return {
+    { 1, 1, ("No.%03d %s"):format(def.dex or 0, def.name or species) },
+    { 1, 2, typeLine(def.types) },
+    { 1, 4, pad("HP", 5) .. pad(s.hp or "-", 4) .. pad("ATK", 5) .. (s.attack or "-") },
+    { 1, 5, pad("DEF", 5) .. pad(s.defense or "-", 4) .. pad("SPD", 5) .. (s.speed or "-") },
+    { 1, 6, pad("SATK", 5) .. pad(s.specialAttack or "-", 4) .. pad("SDEF", 5)
+      .. (s.specialDefense or "-") },
+    { 1, 7, "TOTAL " .. total },
+    { 1, 9, pad("CATCH RATE", 12) .. (def.catchRate or "-") },
+    { 1, 10, pad("BASE EXP", 12) .. (def.baseExp or "-") },
+    { 1, 11, "GROWTH " .. (GROWTH[def.growthRate] or tostring(def.growthRate or "-")) },
+    { 1, 12, "EGG " .. (eggs[1] and eggGroupName(eggs[1]) or "-") },
+    { 5, 13, egg2 },
+    { 1, 14, "GENDER " .. (GENDER[def.genderRatio] or tostring(def.genderRatio or "-")) },
+    { 1, 15, "HATCH " .. (cycles * 256) .. " STEPS" },
+  }
+end
+
+local PAGES = { "STATS" }
+
+local function legacyPokedex(mod)
+  mod.exports.statsLines = statsLines
+  local ok, PokedexMenu = pcall(require, "src.ui.gen2.PokedexMenu")
+  if not (ok and type(PokedexMenu) == "table" and PokedexMenu.update and PokedexMenu.drawPanel) then
+    mod.log:warn("Pokedex screen not found; Legacy Pokedex pages disabled")
+    return
+  end
+
+  local update = PokedexMenu.update
+  PokedexMenu.update = function(self, ...)
+    local input = self.game and self.game.input
+    if input and self.view == "legacy" then
+      if input:wasPressed("b") then
+        self.view = "entry"
+      elseif input:wasPressed("select") or input:wasPressed("right") then
+        self.legacyPage = self.legacyPage % #PAGES + 1
+      elseif input:wasPressed("left") then
+        self.legacyPage = (self.legacyPage - 2) % #PAGES + 1
+      end
+      return
+    end
+    -- SELECT on an entry page (which vanilla leaves unused) opens the pages.
+    if input and self.view == "entry" and not self.newEntry and input:wasPressed("select") then
+      self.view = "legacy"
+      self.legacyPage = 1
+      return
+    end
+    return update(self, ...)
+  end
+
+  local drawPanel = PokedexMenu.drawPanel
+  PokedexMenu.drawPanel = function(self, ...)
+    if self.view ~= "legacy" then return drawPanel(self, ...) end
+    local G = love.graphics
+    G.setColor(0, 0, 0, 1)
+    G.rectangle("fill", 0, 0, 160, 144)
+    G.setColor(1, 1, 1, 1)
+    local row = self:current()
+    local data = self.game and self.game.data
+    self:border(0, 0, 15, 18)
+    local lines = row and statsLines(data, row.species)
+    for _, l in ipairs(lines or {}) do
+      if l[3] ~= "" then self:text(l[3], l[1], l[2]) end
+    end
+    self:text(PAGES[self.legacyPage] .. "  B:BACK", 1, 17)
+    G.setColor(1, 1, 1, 1)
+  end
+end
+"""
+
+
 POKEMON_RT = r"""
 local function copyT(v)
   if type(v) ~= "table" then return v end
@@ -1658,6 +1785,12 @@ MODS = [
                 "your own icons: copy Crystal Legacy's gfx/icons folder into this "
                 "mod's folder as icons/. Falls back to Wilds of Kanto's follower "
                 "sprites when that mod is installed."},
+    {"id": "crystal_legacy_pokedex", "name": "Legacy: Pokédex",
+     "category": "QOL", "games": ["crystal"], "build": build_pokedex,
+     "runtime": DEX_RUNTIME, "permissions": ["engine_internals"],
+     "summary": "Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): "
+                "press SELECT on an entry for Stats, with Moves, Evolution and "
+                "Area pages to follow."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
      "runtime": LEGACY_OPTIONS + QOL_RUNTIME, "permissions": ["engine_internals"],
