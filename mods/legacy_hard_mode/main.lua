@@ -40,7 +40,7 @@ local EVENTS = {
 local E4_REMATCH_CAP = 77 -- Lance beaten again with all 16 badges
 local RED_CAP = 100
 
-local ITEMS_REFUSED = "Items can't be\nused here."
+local ITEMS_REFUSED = "Items can't be\nused right now."
 
 local function badgeCount(store, names)
   if type(store) ~= "table" then return 0 end

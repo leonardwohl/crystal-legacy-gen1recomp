@@ -65,7 +65,7 @@ its source. Ported fixes live in **Legacy: Bug Fixes**.
 | Light Ball / Thick Club doubling capped at 999 | `effect_commands.asm` | ✅ |
 | Psywave never deals 0 | `effect_commands.asm` | ➖ gen1recomp floors it at 1 for both sides |
 | Beat Up's failure path (a link-battle desync in vanilla) | `effect_commands.asm` | ➖ no link battles here |
-| Status moves on an already-statused target name the status | `effect_commands.asm` | ➖ message only; the move fails either way |
+| Status moves on an already-statused target name the status; missed status moves are "evaded" (KDLPro) | `effect_commands.asm` | ✅ toggle BATTLE TEXT; Hard Mode's refusal reads "used right now" |
 | Level 1 has 0 exp (Medium-Slow underflow) | `engine/pokemon/experience.asm` | ➖ gen1recomp clamps exp at 0 |
 | Egg / hatch picture uses the party mon's DVs | `engine/pokemon/breeding.asm` | ➖ presentation only (which Unown letter is drawn) |
 | Can't surf into an object | `engine/events/overworld.asm` | ➖ Crystal has gen1recomp's `surfOntoNpc` fix on |

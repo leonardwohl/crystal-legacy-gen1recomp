@@ -306,6 +306,41 @@ local CHECKS = {
     Battle.enemyUseItem(fake, "FULL_HEAL")
     T.eq(vol.nightmare, nil, "fixes: AI Full Heal ends Nightmare")
     T.eq(Battle.glacierBoostsSpDef(300), true, "fixes: Glacier Badge always boosts Sp. Def")
+    -- Battle text: "already burned!" for a sleep move on a burned target, and
+    -- "evaded the attack!" for a missed status move.
+    do
+      local vols = {}
+      local bt = setmetatable({ events = {}, data = data, random = function() return 255 end,
+        stages = { player = Battle.newStages(), enemy = Battle.newStages() },
+        volatile = function(_, m) vols[m] = vols[m] or {} return vols[m] end,
+        battlerName = function(_, m) return m.name end,
+        statusRefusedByType = function() return false end,
+        aiRandomFail = function() return false end,
+        sideOf = function(_, m) return m.side end }, { __index = Battle })
+      local foe = { name = "RATTATA", status = "burn", side = "enemy", hp = 10 }
+      local me = { name = "ODDISH", side = "player", hp = 10 }
+      local label = bt:primaryStatusRefusal(foe, "sleep", me, "GRASS")
+      local okText, vanillaText = pcall(bt.romText, bt, label, foe, foe)
+      if not okText then vanillaText = "It didn't affect\nRATTATA!" end -- synthetic fixture: no ROM text
+      bt:emit({ kind = "message", text = vanillaText })
+      local said = bt.events[#bt.events].text
+      T.eq(tostring(said):find("already burned", 1, true) ~= nil, true,
+        "fixes: status move on a burned target says so (" .. tostring(said) .. ")")
+      local okRoll, hit = pcall(bt.accuracyRoll, bt, { effect = "EFFECT_SLEEP", accuracy = 1, accuracyRaw = 1 }, me, foe)
+      if not real then
+        -- the synthetic fixture has no accuracy tables; real data runs this
+      elseif okRoll and not hit then
+        bt:emit({ kind = "message", text = "ODDISH's attack missed!" })
+        said = bt.events[#bt.events].text
+        T.eq(tostring(said):find("evaded the attack", 1, true) ~= nil, true,
+          "fixes: a missed status move is evaded (" .. tostring(said) .. ")")
+      else
+        print("accuracy roll: " .. tostring(hit))
+        T.eq(okRoll, true, "fixes: accuracy roll runs")
+      end
+      bt:emit({ kind = "message", text = "ODDISH's attack missed!" })
+      T.eq(bt.events[#bt.events].text, "ODDISH's attack missed!", "fixes: other misses unchanged")
+    end
     -- OT ID 600, DVs 0 -> bc = $012c (300): the full compare stops at the 310
     -- row (551 mm); vanilla's high-byte compare skips to the 710 row (553 mm).
     local Specials = require("src.script.gen2.Specials")

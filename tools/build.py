@@ -1094,6 +1094,7 @@ def build_fixes(ctx):
     body = '''
   local FIXES_OPTIONS = {
     { key = "magikarpSizes", label = "MAGIKARP SIZES", type = "toggle", default = true },
+    { key = "battleText", label = "BATTLE TEXT", type = "toggle", default = true },
   }
   mod.options:define(FIXES_OPTIONS)
   legacyOptionsPage(mod, FIXES_OPTIONS, "BUG FIXES")
@@ -1105,7 +1106,8 @@ def build_fixes(ctx):
   fixCatching(mod)
   fixAi(mod)
   fixMagikarp(mod)
-  fixMagikarpWild(mod)'''
+  fixMagikarpWild(mod)
+  fixBattleText(mod)'''
     lines = [
         "Poké Balls: burned, poisoned and paralysed Pokémon are easier to catch (vanilla "
         "only counted sleep and freeze)",
@@ -1120,6 +1122,9 @@ def build_fixes(ctx):
         "Wild Magikarp sizes follow Crystal Legacy's rules: Magikarp over 5'3\" are rare, "
         "and Lake of Rage's are usually 3' or longer (gen1recomp had no size filter at "
         "all). Toggle: MAGIKARP SIZES",
+        "Battle text (KDLPro's, as in Crystal Legacy): a status move on a Pokémon that "
+        "already has a status says which (\"already burned!\"), and a missed status "
+        "move says the target evaded it. Toggle: BATTLE TEXT",
         "Light Ball and Thick Club can't push Attack past 999",
         "Hurting itself in confusion ignores held type-boosting items (vanilla boosted "
         "the hit when the chosen move's type matched the item)",
@@ -1271,6 +1276,79 @@ local function fixMagikarpWild(mod)
       opts = o
     end
     return new(data, species, level, opts, ...)
+  end
+end
+
+-- KDLPro's battle text, as Crystal Legacy uses it
+-- (engine/battle/effect_commands.asm CheckForStatusIfAlreadyHasAny,
+-- PrintDidntAffect2):
+-- * a status move on a target that already has ANY status names that status
+--   ("already burned!"), where vanilla only did so for the same status and
+--   otherwise said "It didn't affect";
+-- * a status move that misses says the target evaded it ("protecting itself"
+--   behind Protect), not that the attack missed or didn't affect it.
+local ALREADY = {
+  sleep = "%s's\nalready asleep!", freeze = "%s's\nalready frozen!",
+  paralyze = "%s's\nalready paralyzed!", poison = "%s's\nalready poisoned!",
+  toxic = "%s's\nalready poisoned!", burn = "%s's\nalready burned!",
+}
+-- The moves whose miss goes through PrintDidntAffect2.
+local EVADE_EFFECTS = {
+  EFFECT_SLEEP = true, EFFECT_POISON = true, EFFECT_TOXIC = true,
+  EFFECT_PARALYZE = true, EFFECT_CONFUSE = true, EFFECT_SWAGGER = true,
+  EFFECT_PAIN_SPLIT = true, EFFECT_ENCORE = true, EFFECT_SPITE = true,
+}
+local STATUS_MOVES = { sleep = true, poison = true, toxic = true, paralyze = true }
+
+local function fixBattleText(mod)
+  local Battle = engine(mod, "src.battle.gen2.Battle", "battle text")
+  if not Battle then return end
+  local okS, Strings = pcall(require, "src.core.Strings")
+  local function fmt(f, ...)
+    if okS and Strings then return Strings(f, ...) end
+    return f:format(...)
+  end
+
+  local refusal = Battle.primaryStatusRefusal
+  if refusal then
+    Battle.primaryStatusRefusal = function(self, mon, status, source, moveType, ...)
+      local label = refusal(self, mon, status, source, moveType, ...)
+      if OPT("battleText") and label == "DidntAffect1Text" and STATUS_MOVES[status]
+          and mon and mon.status and ALREADY[mon.status] then
+        -- Returned as finished text: the caller prints it through romText,
+        -- which hands back anything that isn't a label as it is.
+        self.__legacyAlready = fmt(ALREADY[mon.status], self:battlerName(mon))
+      end
+      return label
+    end
+  end
+
+  local accuracyRoll = Battle.accuracyRoll
+  local emit = Battle.emit
+  if accuracyRoll and emit then
+    Battle.accuracyRoll = function(self, def, attacker, defender, ...)
+      local hit = accuracyRoll(self, def, attacker, defender, ...)
+      if not hit and def and EVADE_EFFECTS[def.effect] and defender and OPT("battleText") then
+        self.__legacyEvaded = defender
+      end
+      return hit
+    end
+    Battle.emit = function(self, event)
+      if type(event) == "table" and event.kind == "message" then
+        local evaded, already = self.__legacyEvaded, self.__legacyAlready
+        self.__legacyEvaded, self.__legacyAlready = nil, nil
+        local t = type(event.text) == "string" and event.text or ""
+        if evaded and (t:find("missed", 1, true) or t:find("didn't affect", 1, true)) then
+          local state = self.volatile and self:volatile(evaded) or {}
+          event.text = state.protect
+            and fmt("%s's\nPROTECTING itself!", self:battlerName(evaded))
+            or fmt("%s\nevaded the attack!", self:battlerName(evaded))
+        elseif already and t:find("didn't affect", 1, true) then
+          event.text = already
+        end
+      end
+      return emit(self, event)
+    end
   end
 end
 
