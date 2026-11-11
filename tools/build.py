@@ -1565,7 +1565,10 @@ def build_pokedex(ctx):
         "**◀▶** moves between them and **B** goes back to the entry",
         "**Stats:** types, base stats and their total, catch rate, base exp, growth "
         "rate, egg groups, gender ratio and hatch steps",
-        "Coming next: Moves, Evolution and Area pages",
+        "**Level-up moves**, **TM/HM moves** and **Egg moves** (up/down scrolls a long list)",
+        "**Evolution:** the whole family, with each step's method (level, item, trade, "
+        "happiness by time of day, Tyrogue's stat check)",
+        "Coming next: the detailed Area pages",
         "Shows whatever data is loaded: with Legacy: Pokémon Changes installed, "
         "Crystal Legacy's stats; otherwise vanilla's",
     ]
@@ -1579,8 +1582,12 @@ local GROWTH = {
   GROWTH_FAST = "FAST", GROWTH_SLOW = "SLOW",
 }
 -- constants/pokemon_data_constants.asm GENDER_*: the female share in 256ths.
-local GENDER = { [0] = "MALE ONLY", [31] = "M7 : F1", [63] = "M3 : F1",
-  [127] = "M1 : F1", [191] = "M1 : F3", [254] = "FEMALE ONLY", [255] = "UNKNOWN" }
+-- (Crystal's font has no '<', '>', '=' or '+', but it does have the symbols.)
+local GENDER = { [0] = "♂ ONLY", [31] = "♂7 : ♀1", [63] = "♂3 : ♀1",
+  [127] = "♂1 : ♀1", [191] = "♂1 : ♀3", [254] = "♀ ONLY", [255] = "UNKNOWN" }
+local STAT_CHECK = { ATK_GT_DEF = "ATK HIGHER", ATK_LT_DEF = "DEF HIGHER",
+  ATK_EQ_DEF = "ATK SAME" }
+local TIMES = { MORNDAY = " DAY", NITE = " NIGHT", ANYTIME = "" }
 
 local function eggGroupName(id)
   return (tostring(id):gsub("^EGG_", ""):gsub("_", " "))
@@ -1598,7 +1605,22 @@ local function pad(s, n)
   return s .. string.rep(" ", math.max(0, n - #s))
 end
 
--- The Stats page as lines of text (also what the tests read).
+local function moveName(data, id)
+  local m = data and data.moves and data.moves[id]
+  return (m and m.name) or (tostring(id):gsub("_", " "))
+end
+
+local function monName(data, species)
+  local d = data and data.pokemon and data.pokemon[species]
+  return (d and d.name) or tostring(species)
+end
+
+local function itemName(data, id)
+  local it = data and data.items and data.items[id]
+  return (it and it.name) or (tostring(id):gsub("_", " "))
+end
+
+-- Stats page: positioned lines { x, y, text } (also what the tests read).
 local function statsLines(data, species)
   local def = data and data.pokemon and data.pokemon[species]
   if not def then return nil end
@@ -1609,8 +1631,6 @@ local function statsLines(data, species)
   local egg2 = (eggs[2] and eggs[2] ~= eggs[1]) and eggGroupName(eggs[2]) or ""
   local cycles = tonumber(def.eggSteps) or 0
   return {
-    { 1, 1, ("No.%03d %s"):format(def.dex or 0, def.name or species) },
-    { 1, 2, typeLine(def.types) },
     { 1, 4, pad("HP", 5) .. pad(s.hp or "-", 4) .. pad("ATK", 5) .. (s.attack or "-") },
     { 1, 5, pad("DEF", 5) .. pad(s.defense or "-", 4) .. pad("SPD", 5) .. (s.speed or "-") },
     { 1, 6, pad("SATK", 5) .. pad(s.specialAttack or "-", 4) .. pad("SDEF", 5)
@@ -1626,14 +1646,102 @@ local function statsLines(data, species)
   }
 end
 
-local PAGES = { "STATS" }
+-- List pages: plain lines, scrolled by the page.
+local function levelLines(data, species)
+  local def = data.pokemon[species]
+  local out = {}
+  for _, r in ipairs(def and def.levelMoves or {}) do
+    out[#out + 1] = pad("LV" .. tostring(r.level), 5) .. moveName(data, r.move)
+  end
+  if #out == 0 then out[1] = "NONE" end
+  return out
+end
+
+local function tmLines(data, species)
+  local def = data.pokemon[species]
+  local out = {}
+  for _, id in ipairs(def and def.tmhm or {}) do out[#out + 1] = moveName(data, id) end
+  if #out == 0 then out[1] = "NONE" end
+  return out
+end
+
+local function eggLines(data, species)
+  local def = data.pokemon[species]
+  local out = {}
+  for _, id in ipairs(def and def.eggMoves or {}) do out[#out + 1] = moveName(data, id) end
+  if #out == 0 then out[1] = "NONE" end
+  return out
+end
+
+local function methodText(data, e)
+  local m = e.method
+  if m == "EVOLVE_LEVEL" then return "LV" .. tostring(e.level) end
+  if m == "EVOLVE_ITEM" then return itemName(data, e.item) end
+  if m == "EVOLVE_TRADE" then
+    -- the held item on its own line: "TRADE DRAGON SCALE" does not fit indented
+    if e.item then return "TRADE HOLDING", itemName(data, e.item) end
+    return "TRADE"
+  end
+  if m == "EVOLVE_HAPPINESS" then return "HAPPINESS" .. (TIMES[e.time] or "") end
+  if m == "EVOLVE_STAT" then
+    return "LV" .. tostring(e.level) .. " " .. (STAT_CHECK[e.comparison] or "")
+  end
+  return (tostring(m):gsub("^EVOLVE_", ""))
+end
+
+-- The whole family: walk back to the first stage, then down every branch.
+local function evoLines(data, species)
+  local parent = {}
+  for id, def in pairs(data.pokemon or {}) do
+    for _, e in ipairs(type(def) == "table" and def.evolutions or {}) do
+      if e.into and not parent[e.into] then parent[e.into] = id end
+    end
+  end
+  local root, guard = species, 0
+  while parent[root] and guard < 8 do root, guard = parent[root], guard + 1 end
+  local out = {}
+  local function walk(id, depth, seen)
+    if seen[id] then return end
+    seen[id] = true
+    local def = data.pokemon[id]
+    for _, e in ipairs(def and def.evolutions or {}) do
+      out[#out + 1] = string.rep(" ", depth) .. "→" .. monName(data, e.into)
+      for _, line in ipairs({ methodText(data, e) }) do
+        out[#out + 1] = string.rep(" ", depth + 1) .. line
+      end
+      walk(e.into, depth + 1, seen)
+    end
+  end
+  out[1] = monName(data, root)
+  walk(root, 0, {})
+  if #out == 1 then out[2] = "DOES NOT EVOLVE" end
+  return out
+end
+
+local PAGES = {
+  { title = "STATS", stats = statsLines },
+  { title = "LEVEL-UP MOVES", list = levelLines },
+  { title = "TM/HM MOVES", list = tmLines },
+  { title = "EGG MOVES", list = eggLines },
+  { title = "EVOLUTION", list = evoLines },
+}
+local LIST_TOP, LIST_ROWS = 4, 12
 
 local function legacyPokedex(mod)
   mod.exports.statsLines = statsLines
+  mod.exports.pages = PAGES
   local ok, PokedexMenu = pcall(require, "src.ui.gen2.PokedexMenu")
   if not (ok and type(PokedexMenu) == "table" and PokedexMenu.update and PokedexMenu.drawPanel) then
     mod.log:warn("Pokedex screen not found; Legacy Pokedex pages disabled")
     return
+  end
+
+  local function pageLines(self)
+    local row = self:current()
+    local data = self.game and self.game.data
+    local page = PAGES[self.legacyPage]
+    if not (row and data and page and page.list) then return {} end
+    return page.list(data, row.species) or {}
   end
 
   local update = PokedexMenu.update
@@ -1643,16 +1751,20 @@ local function legacyPokedex(mod)
       if input:wasPressed("b") then
         self.view = "entry"
       elseif input:wasPressed("select") or input:wasPressed("right") then
-        self.legacyPage = self.legacyPage % #PAGES + 1
+        self.legacyPage, self.legacyScroll = self.legacyPage % #PAGES + 1, 0
       elseif input:wasPressed("left") then
-        self.legacyPage = (self.legacyPage - 2) % #PAGES + 1
+        self.legacyPage, self.legacyScroll = (self.legacyPage - 2) % #PAGES + 1, 0
+      elseif input:wasPressed("down") then
+        local n = #pageLines(self)
+        self.legacyScroll = math.min((self.legacyScroll or 0) + 1, math.max(0, n - LIST_ROWS))
+      elseif input:wasPressed("up") then
+        self.legacyScroll = math.max(0, (self.legacyScroll or 0) - 1)
       end
       return
     end
     -- SELECT on an entry page (which vanilla leaves unused) opens the pages.
     if input and self.view == "entry" and not self.newEntry and input:wasPressed("select") then
-      self.view = "legacy"
-      self.legacyPage = 1
+      self.view, self.legacyPage, self.legacyScroll = "legacy", 1, 0
       return
     end
     return update(self, ...)
@@ -1667,12 +1779,28 @@ local function legacyPokedex(mod)
     G.setColor(1, 1, 1, 1)
     local row = self:current()
     local data = self.game and self.game.data
+    local page = PAGES[self.legacyPage]
     self:border(0, 0, 15, 18)
-    local lines = row and statsLines(data, row.species)
-    for _, l in ipairs(lines or {}) do
-      if l[3] ~= "" then self:text(l[3], l[1], l[2]) end
+    if row and data then
+      local def = data.pokemon and data.pokemon[row.species]
+      self:text(("No.%03d %s"):format(def and def.dex or 0, monName(data, row.species)), 1, 1)
+      self:text(page.title, 1, 2)
+      if page.stats then
+        self:text(typeLine(def and def.types), 1, 3)
+        for _, l in ipairs(page.stats(data, row.species) or {}) do
+          if l[3] ~= "" then self:text(l[3], l[1], l[2]) end
+        end
+      else
+        local lines = page.list(data, row.species) or {}
+        local top = self.legacyScroll or 0
+        for i = 1, LIST_ROWS do
+          local line = lines[top + i]
+          if line then self:text(line, 1, LIST_TOP + i - 1) end
+        end
+        if top + LIST_ROWS < #lines then self:text("▼", 18, 15) end
+      end
     end
-    self:text(PAGES[self.legacyPage] .. "  B:BACK", 1, 17)
+    self:text(("%d/%d  B:BACK"):format(self.legacyPage, #PAGES), 1, 17)
     G.setColor(1, 1, 1, 1)
   end
 end
@@ -1789,7 +1917,7 @@ MODS = [
      "category": "QOL", "games": ["crystal"], "build": build_pokedex,
      "runtime": DEX_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): "
-                "press SELECT on an entry for Stats, with Moves, Evolution and "
+                "press SELECT on an entry for Stats, Moves and Evolution, with "
                 "Area pages to follow."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,

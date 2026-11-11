@@ -121,26 +121,74 @@ local trainers = data.gen2Trainers.classes
 local CHECKS = {
   crystal_legacy_pokedex = function()
     local ex = loader.exports.crystal_legacy_pokedex
-    local lines = ex and ex.statsLines(data, "CHIKORITA")
-    local text = {}
-    for _, l in ipairs(lines or {}) do text[#text + 1] = l[3] end
-    local all = table.concat(text, " | ")
-    T.eq(all:find("No.152 CHIKORITA", 1, true) ~= nil, true, "pokedex: stats header")
-    T.eq(all:find("GRASS", 1, true) ~= nil, true, "pokedex: types")
-    local hp = data.pokemon.CHIKORITA.baseStats.hp
-    T.eq(all:find("HP   " .. hp, 1, true) ~= nil, true, "pokedex: base HP from the live data")
-    T.eq(all:find("TOTAL", 1, true) ~= nil, true, "pokedex: stat total")
-    T.eq(all:find("#", 1, true), nil, "pokedex: no characters the Gen 2 font lacks")
-    for _, l in ipairs(lines or {}) do
-      T.eq(#l[3] + l[1] <= 19, true, "pokedex: '" .. l[3] .. "' fits inside the box")
+    local function glyphs(str)
+      local n = 0
+      for i = 1, #str do
+        local b = str:byte(i)
+        if b < 0x80 or b >= 0xC0 then n = n + 1 end
+      end
+      return n
     end
-    -- SELECT on an entry opens the pages; B goes back to the entry.
+    local function join(lines)
+      local t = {}
+      for _, l in ipairs(lines or {}) do t[#t + 1] = type(l) == "table" and l[3] or l end
+      return table.concat(t, " | ")
+    end
+    local pages = {}
+    for _, page in ipairs(ex.pages) do pages[page.title] = page end
+    -- Stats, from the live data.
+    local stats = join(ex.statsLines(data, "CHIKORITA"))
+    T.eq(stats:find("HP   " .. data.pokemon.CHIKORITA.baseStats.hp, 1, true) ~= nil, true,
+      "pokedex: base HP from the live data")
+    T.eq(stats:find("TOTAL", 1, true) ~= nil, true, "pokedex: stat total")
+    -- Moves.
+    local level = join(pages["LEVEL-UP MOVES"].list(data, "CHIKORITA"))
+    local first = data.pokemon.CHIKORITA.levelMoves[1]
+    T.eq(level:find("LV" .. first.level, 1, true) ~= nil and level:find(data.moves[first.move].name, 1, true) ~= nil,
+      true, "pokedex: level-up moves with levels")
+    T.eq(#pages["TM/HM MOVES"].list(data, "CHIKORITA") >= 1, true, "pokedex: TM/HM page lists moves")
+    -- Evolution: the whole family, with methods.
+    local eevee = join(pages.EVOLUTION.list(data, "UMBREON"))
+    T.eq(eevee:find("EEVEE", 1, true) ~= nil and eevee:find("VAPOREON", 1, true) ~= nil, true,
+      "pokedex: evolution shows the family from any member")
+    T.eq(eevee:find("NIGHT", 1, true) ~= nil, true, "pokedex: happiness by time of day")
+    T.eq(join(pages.EVOLUTION.list(data, "TYROGUE")):find("ATK HIGHER", 1, true) ~= nil, true,
+      "pokedex: Tyrogue's stat check in words")
+    T.eq(join(pages.EVOLUTION.list(data, "UNOWN")):find("DOES NOT EVOLVE", 1, true) ~= nil, true,
+      "pokedex: single-stage Pokemon say so")
+    -- Every page, every species: fits the box and uses only Crystal's font.
+    local tooWide, badChar = {}, {}
+    for species in pairs(data.pokemon) do
+      for _, page in ipairs(ex.pages) do
+        local lines = page.stats and page.stats(data, species) or page.list(data, species) or {}
+        for _, l in ipairs(lines) do
+          local x, text = 1, l
+          if type(l) == "table" then x, text = l[1], l[3] end
+          if glyphs(text) + x > 19 then tooWide[#tooWide + 1] = species .. ": " .. text end
+          if text:find("[<>=+#]") then badChar[#badChar + 1] = species .. ": " .. text end
+        end
+      end
+    end
+    for i = 1, math.min(5, #tooWide) do print("too wide: " .. tooWide[i]) end
+    T.eq(#tooWide, 0, "pokedex: every line of every page fits the box")
+    T.eq(#badChar, 0, "pokedex: no characters Crystal's font lacks")
+    -- SELECT opens the pages; left/right switch; down scrolls; B goes back.
     local PokedexMenu = require("src.ui.gen2.PokedexMenu")
     local pressed
-    local fake = { view = "entry", page = 1, game = { input = {
-      wasPressed = function(_, b) return b == pressed end } } }
+    local fake = { view = "entry", page = 1,
+      current = function() return { species = "CHIKORITA" } end,
+      game = { data = data, input = { wasPressed = function(_, b) return b == pressed end } } }
     pressed = "select" PokedexMenu.update(fake)
     T.eq(fake.view, "legacy", "pokedex: SELECT opens the Legacy pages")
+    pressed = "right" PokedexMenu.update(fake)
+    T.eq(fake.legacyPage, 2, "pokedex: right moves to the next page")
+    local tmFake = fake
+    pressed = "right" PokedexMenu.update(tmFake) -- TM/HM: long enough to scroll
+    pressed = "down" PokedexMenu.update(tmFake)
+    T.eq((tmFake.legacyScroll or 0) <= math.max(0, #pages["TM/HM MOVES"].list(data, "CHIKORITA") - 12), true,
+      "pokedex: scrolling stays inside the list")
+    pressed = "left" PokedexMenu.update(fake)
+    T.eq(fake.legacyPage, 2, "pokedex: left goes back a page")
     pressed = "b" PokedexMenu.update(fake)
     T.eq(fake.view, "entry", "pokedex: B goes back to the entry")
   end,
