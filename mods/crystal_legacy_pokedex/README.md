@@ -1,6 +1,6 @@
 # Legacy: Pokédex
 
-Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): press SELECT on an entry for Stats, Moves and Evolution, with Area pages to follow.
+Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): press SELECT on an entry for Stats, Moves, Evolution and Area.
 
 ## What it changes
 
@@ -9,7 +9,7 @@ Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): press SELECT o
 - **Stats:** types, base stats and their total, catch rate, base exp, growth rate, egg groups, gender ratio and hatch steps
 - **Level-up moves**, **TM/HM moves** and **Egg moves** (up/down scrolls a long list)
 - **Evolution:** the whole family, with each step's method (level, item, trade, happiness by time of day, Tyrogue's stat check)
-- Coming next: the detailed Area pages
+- **Area:** every place it's found -- grass by time of day, surfing, Old / Good / Super Rod (with day/night-only fish), Headbutt trees and Rock Smash -- with each method's odds and levels
 - Shows whatever data is loaded: with Legacy: Pokémon Changes installed, Crystal Legacy's stats; otherwise vanilla's
 
 Games: crystal. Needs gen1recomp >=0.4.0 <0.5.0.

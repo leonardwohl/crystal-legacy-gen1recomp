@@ -156,6 +156,14 @@ local CHECKS = {
       "pokedex: Tyrogue's stat check in words")
     T.eq(join(pages.EVOLUTION.list(data, "UNOWN")):find("DOES NOT EVOLVE", 1, true) ~= nil, true,
       "pokedex: single-stage Pokemon say so")
+    -- Area: every way a species is found, from the live encounter tables.
+    if data.gen2Encounters and data.gen2Encounters.fishGroups then
+      local area = function(sp) return join(pages.AREA.list(data, sp)) end
+      T.eq(area("MAGIKARP"):find(" OLD ", 1, true) ~= nil, true, "pokedex: area lists Old Rod fishing")
+      T.eq(area("HOOTHOOT"):find("TREE", 1, true) ~= nil, true, "pokedex: area lists Headbutt trees")
+      T.eq(area("PIDGEY"):find("%", 1, true) ~= nil, true, "pokedex: area shows encounter odds")
+      T.eq(area("MEW"):find("NOT FOUND IN", 1, true) ~= nil, true, "pokedex: no wild spot says so")
+    end
     -- Every page, every species: fits the box and uses only Crystal's font.
     local tooWide, badChar = {}, {}
     for species in pairs(data.pokemon) do

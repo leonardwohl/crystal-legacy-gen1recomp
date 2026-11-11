@@ -17,6 +17,6 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): press SELECT on an entry for Stats, Moves and Evolution, with Area pages to follow. Unofficial port of Pokémon Crystal Legacy.",
+  "description": "Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): press SELECT on an entry for Stats, Moves, Evolution and Area. Unofficial port of Pokémon Crystal Legacy.",
   "github": "leonardwohl/crystal-legacy-gen1recomp"
 }
