@@ -1,7 +1,7 @@
 {
   "id": "fast_eggs",
   "name": "Fast Eggs",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "api": 2,
   "games": [
     "gen2"
