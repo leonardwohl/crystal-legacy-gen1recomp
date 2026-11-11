@@ -19,6 +19,9 @@ import textc  # noqa: E402
 from asm import const_values, statements  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# The shared "CRYSTAL LEGACY" options page, added to every mod with settings.
+LEGACY_OPTIONS = open(os.path.join(ROOT, "tools", "legacy_options.lua"),
+                      encoding="utf-8").read()
 VERSION = "0.3.0"
 GAME_VERSION = ">=0.4.0 <0.5.0"
 GITHUB = "leonardwohl/crystal-legacy-gen1recomp"
@@ -820,6 +823,7 @@ local OPT
 
 local function qolOptions(mod)
   mod.options:define(QOL_OPTIONS)
+  legacyOptionsPage(mod, QOL_OPTIONS, "QUALITY OF LIFE")
   OPT = function(key)
     local v = mod.options:get(key)
     if v == nil then return true end
@@ -1086,9 +1090,11 @@ end
 # ------------------------------------------------------------------ bug fixes
 def build_fixes(ctx):
     body = '''
-  mod.options:define({
+  local FIXES_OPTIONS = {
     { key = "magikarpSizes", label = "MAGIKARP SIZES", type = "toggle", default = true },
-  })
+  }
+  mod.options:define(FIXES_OPTIONS)
+  legacyOptionsPage(mod, FIXES_OPTIONS, "BUG FIXES")
   OPT = function(key)
     local v = mod.options:get(key)
     if v == nil then return true end
@@ -1401,9 +1407,11 @@ local function shadeOf(r, g, b)
 end
 
 local function legacyMenuIcons(mod)
-  mod.options:define({
+  local ICON_OPTIONS = {
     { key = "useWilds", label = "USE WILDS SPRITES", type = "toggle", default = true },
-  })
+  }
+  mod.options:define(ICON_OPTIONS)
+  legacyOptionsPage(mod, ICON_OPTIONS, "MENU ICONS")
   local okA, Assets = pcall(require, "src.render.Assets")
   if not (okA and Assets and Assets.compose) then
     mod.log:warn("asset module not found; Legacy menu icons disabled")
@@ -1619,19 +1627,19 @@ MODS = [
                 "themselves once you have all 16 badges."},
     {"id": "crystal_legacy_fixes", "name": "Legacy: Bug Fixes",
      "category": "BALANCE", "games": ["crystal"], "build": build_fixes,
-     "runtime": FIXES_RUNTIME, "permissions": ["engine_internals"],
+     "runtime": LEGACY_OPTIONS + FIXES_RUNTIME, "permissions": ["engine_internals"],
      "summary": "The vanilla Crystal bugs Crystal Legacy fixes and gen1recomp still "
                 "reproduces: Poké Ball catch bonuses, the trainer AI and the Glacier Badge."},
     {"id": "crystal_legacy_icons", "name": "Legacy: Menu Icons",
      "category": "QOL", "games": ["crystal"], "build": build_icons,
-     "runtime": ICONS_RUNTIME, "permissions": ["engine_internals"],
+     "runtime": LEGACY_OPTIONS + ICONS_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's per-species party menu icons and colours. Bring "
                 "your own icons: copy Crystal Legacy's gfx/icons folder into this "
                 "mod's folder as icons/. Falls back to Wilds of Kanto's follower "
                 "sprites when that mod is installed."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",
      "category": "QOL", "games": ["crystal"], "build": build_qol,
-     "runtime": QOL_RUNTIME, "permissions": ["engine_internals"],
+     "runtime": LEGACY_OPTIONS + QOL_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's quality-of-life touches: run with B, reuse Repels, "
                 "sort the PACK with START, a quicker nurse, and a Day-Care that keeps "
                 "your Pokémon's experience."},
@@ -1701,6 +1709,19 @@ def write_mod(spec, ctx):
     return lines
 
 
+def sync_hard_mode_options():
+    """legacy_hard_mode is hand-written; its copy of the shared options block
+    sits between the BEGIN/END markers and is refreshed from the source."""
+    path = os.path.join(ROOT, "mods", "legacy_hard_mode", "main.lua")
+    text = open(path, encoding="utf-8").read()
+    start = text.index("-- BEGIN legacy_options")
+    end = text.index("-- END legacy_options") + len("-- END legacy_options\n")
+    block = LEGACY_OPTIONS if LEGACY_OPTIONS.endswith("\n") else LEGACY_OPTIONS + "\n"
+    if text[start:end] != block:
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text[:start] + block + text[end:])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True)
@@ -1713,6 +1734,7 @@ def main():
             continue
         lines = write_mod(spec, ctx)
         print("%-28s %s" % (spec["id"], lines[0]))
+    sync_hard_mode_options()
     for note in ctx["report"]["notes"]:
         print("note:", note)
 

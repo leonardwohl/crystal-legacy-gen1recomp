@@ -1,7 +1,11 @@
 # Legacy: Hard Mode
 
-Crystal Legacy's optional Hard Mode for gen1recomp's Crystal. Each rule can be
-toggled in the mod's options.
+Crystal Legacy's optional Hard Mode for gen1recomp's Crystal. Two switches, in
+**OPTIONS → CRYSTAL LEGACY** or the mod's settings in the MODS menu:
+
+- **HARD MODE** (on by default): level caps, Set style and no items against
+  trainers, all together.
+- **HARDCORE** (off by default): the rules below.
 
 ## Rules
 

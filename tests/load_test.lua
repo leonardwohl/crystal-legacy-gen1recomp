@@ -453,6 +453,9 @@ local CHECKS = {
                battle = { data = data } }
     end
     T.eq(Runtime.call("exp.gain", base, ctxFor(10, 1000)), 0, "hard mode: no exp at cap 10")
+    loader.modOptions.legacy_hard_mode = { hardMode = false }
+    T.eq(Runtime.call("exp.gain", base, ctxFor(10, 1000)), 5000, "hard mode: HARD MODE off lifts the cap")
+    loader.modOptions.legacy_hard_mode = nil
     local growth = Mon.growthFor(data, p.CHIKORITA.growthRate)
     local at10 = Mon.experienceForLevel(growth, 10)
     local got = Runtime.call("exp.gain", base, ctxFor(9, at10 - 50))
@@ -1085,6 +1088,49 @@ local CHECKS = {
 }
 for _, id in ipairs(ids) do
   if CHECKS[id] then CHECKS[id]() end
+end
+
+-- The shared "CRYSTAL LEGACY" options page, whenever a Legacy mod with
+-- settings is loaded.
+do
+  local withSettings = { legacy_hard_mode = "HARD MODE", crystal_legacy_qol = "QUALITY OF LIFE",
+    crystal_legacy_fixes = "BUG FIXES", crystal_legacy_icons = "MENU ICONS" }
+  local expected = {}
+  for _, id in ipairs(ids) do if withSettings[id] then expected[#expected + 1] = id end end
+  if #expected > 0 then
+    local ManagerState = require("src.mods.ManagerState")
+    local reg = rawget(ManagerState, "__crystalLegacyOptions")
+    T.eq(reg ~= nil, true, "options: Legacy settings page registered")
+    local rows = Runtime.call("ui.options.rows", function(_, r) return r end, {},
+      { { label = "TEXT SPEED" }, { label = "MODS" } })
+    local at, mods, count = nil, nil, 0
+    for i, r in ipairs(rows) do
+      if r.label == "CRYSTAL LEGACY" then at = i count = count + 1 end
+      if r.label == "MODS" then mods = i end
+    end
+    T.eq(count, 1, "options: exactly one CRYSTAL LEGACY row")
+    T.eq(at and mods and at == mods - 1, true, "options: placed just before MODS")
+    local game = { mods = loader, save = { options = {} }, writeOptions = function() end }
+    local page = reg and reg.newScreen(game)
+    local headers = {}
+    for _, r in ipairs(page and page.rows or {}) do if r.header then headers[r.label] = true end end
+    for _, id in ipairs(expected) do
+      T.eq(headers[withSettings[id]] == true, true, "options: page lists " .. withSettings[id])
+    end
+    -- Flip the first setting through the page; the MODS menu's store sees it.
+    local first = page and page.rows[page.index]
+    if first and first.step then
+      local before = first.value()
+      first.step(game)
+      T.eq(first.value() ~= before, true, "options: a setting changes from the page")
+      local saved = false
+      for _, bucket in pairs(game.save.options.modOptions or {}) do
+        for _ in pairs(bucket) do saved = true end
+      end
+      T.eq(saved, true, "options: saved where the MODS menu reads it")
+      first.step(game) -- put it back
+    end
+  end
 end
 if loader.mods.crystal_legacy_trainers then CHECKS.crystal_legacy_trainers_scaling() end
 
