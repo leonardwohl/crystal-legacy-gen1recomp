@@ -136,6 +136,19 @@ local CHECKS = {
     T.eq((icon("CYNDAQUIL")), "vanilla.png", "icons: no file -> gen1recomp's normal icon")
     T.eq((icon("CHIKORITA", { species = "CHIKORITA", isEgg = true })), "vanilla.png",
       "icons: eggs keep the egg icon")
+    -- Palette slots for Legacy's (already coloured) icon files, by colour value.
+    local slot = loader.exports.crystal_legacy_icons.slotOf
+    local function c(r, g, b) return slot(r / 255, g / 255, b / 255) end
+    T.eq(c(255, 255, 255), 1, "icons: white is the transparent slot")
+    T.eq(c(255, 156, 82), 2, "icons: the shared peach stays peach")
+    T.eq(c(0, 0, 0), 4, "icons: black stays black")
+    T.eq(c(82, 74, 255), 3, "icons: Wooper's blue is the species colour")
+    T.eq(c(57, 189, 24), 3, "icons: Chikorita's green is the species colour")
+    T.eq(c(255, 57, 8), 3, "icons: red is the species colour")
+    T.eq(c(247, 82, 90), 3, "icons: pink is not mistaken for the peach")
+    T.eq(c(107, 107, 107), 3, "icons: gray is the species colour")
+    T.eq(c(170, 170, 170), 2, "icons: a grey file's light grey is the light slot (Ho-Oh)")
+    T.eq(c(85, 85, 85), 3, "icons: a grey file's dark grey is the species colour")
     -- Wilds of Kanto fallback, with a stand-in resolver (no image is decoded).
     local ex = loader.exports.crystal_legacy_icons
     ex.setWildsResolver(function(opts)

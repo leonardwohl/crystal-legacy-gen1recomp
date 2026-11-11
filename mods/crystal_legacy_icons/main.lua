@@ -441,11 +441,30 @@ local function iconRgba(palette)
   return out
 end
 
--- The four Game Boy shades, lightest first, by brightness.
-local function shadeOf(r, g, b)
-  local v = (r + g + b) / 3
-  if v > 0.84 then return 1 elseif v > 0.5 then return 2 elseif v > 0.17 then return 3 end
-  return 4
+-- Which of the palette's four slots a pixel is. Crystal Legacy's icon files
+-- are already coloured: white (transparent), a peach shared by every
+-- palette, the species colour, and black. Matching the three fixed colours
+-- and calling everything else the species colour is what keeps a saturated
+-- blue (Wooper, Totodile, Marill) from passing for the peach by brightness.
+local FIXED -- { white, peach, black } as 0-1 RGB, from DATA.palettes
+local function slotOf(r, g, b)
+  if not FIXED then
+    local p = DATA.palettes.RED
+    FIXED = { { 1, p[1] }, { 2, p[2] }, { 4, p[4] } }
+  end
+  local best, bestD = 3, 0.06 -- squared distance; anything farther is the species colour
+  for _, f in ipairs(FIXED) do
+    local c = f[2]
+    local dr, dg, db = r - c[1] / 31, g - c[2] / 31, b - c[3] / 31
+    local d = dr * dr + dg * dg + db * db
+    if d < bestD then best, bestD = f[1], d end
+  end
+  if best ~= 3 then return best end
+  -- A plain grey file (Ho-Oh still uses one): light grey is the light slot,
+  -- dark grey the species colour. In the coloured files the only grey is the
+  -- GRAY palette's species colour, which is dark.
+  if math.abs(r - g) < 0.02 and math.abs(g - b) < 0.02 and r > 0.5 then return 2 end
+  return 3
 end
 
 local function legacyMenuIcons(mod)
@@ -483,7 +502,7 @@ local function legacyMenuIcons(mod)
         local img = Assets.imageData(src)
         img:mapPixel(function(_, _, r, g, b, a)
           if a == 0 then return 0, 0, 0, 0 end
-          local c = colours[shadeOf(r, g, b)]
+          local c = colours[slotOf(r, g, b)]
           return c[1], c[2], c[3], c[4]
         end)
         return img
@@ -493,6 +512,7 @@ local function legacyMenuIcons(mod)
     return key
   end
   mod.exports.composedPath = composedPath
+  mod.exports.slotOf = slotOf
 
   -- Fallback source: Wilds of Kanto (overworld_wild_spawns), when installed.
   -- Its resolveFollowerSprite picks the sheet for the player's chosen Sprite
