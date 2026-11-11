@@ -62,6 +62,17 @@ def _sprite_mons(legacy):
     return mons
 
 
+# The repository's own gfx/ (a copy of Crystal Legacy's) is used when a file
+# is there; otherwise the Legacy checkout passed on the command line.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def gfx_path(legacy, rel):
+    """`rel` is a Legacy-relative path such as gfx/sprites/archer.png."""
+    mine = os.path.join(REPO_ROOT, rel)
+    return mine if os.path.exists(mine) else os.path.join(legacy, rel)
+
+
 def _species_icon_files(legacy):
     """SPECIES -> icon png, via menu_icons.asm, IconPointers and gfx/icons.asm."""
     import sys
@@ -84,7 +95,7 @@ def _species_icon_files(legacy):
         m = re.match(r'\s*(\w+):+\s*INCBIN\s+"([^"]+)\.2bpp"', line)
         if m:
             files[m.group(1)] = m.group(2) + ".png"
-    return {sp: os.path.join(legacy, files[labels[consts[ic]]])
+    return {sp: gfx_path(legacy, files[labels[consts[ic]]])
             for sp, ic in by_species.items() if ic in consts and consts[ic] < len(labels)
             and labels[consts[ic]] in files}
 
@@ -143,7 +154,7 @@ def port(base, legacy, map_files, asset_dir, pinned=None):
                    "palette": "PAL_OW_RED", "paletteId": 0, "species": species}
         else:
             label, tiles, kind, pal = rows[value - 1]
-            src = os.path.join(legacy, gfx[label])
+            src = gfx_path(legacy, gfx[label])
             num = pinned.get(name) or alloc(FIRST_WALKING, LAST_WALKING)
             frames = Image.open(src).size[1] // 16
             rec = {"frames": frames, "walker": kind == "WALKING_SPRITE" or frames >= 6,

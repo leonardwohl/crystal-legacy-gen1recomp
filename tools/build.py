@@ -768,7 +768,7 @@ def build_qol(ctx):
     run_sprites = []
     for name, src, pal in (("SPRITE_CHRIS_RUN", "chris_run.png", "PAL_OW_RED"),
                            ("SPRITE_KRIS_RUN", "kris_run.png", "PAL_OW_BLUE")):
-        path = os.path.join(leg, "gfx", "sprites", src)
+        path = SP.gfx_path(leg, "gfx/sprites/" + src)
         SP.convert(path, os.path.join(asset_dir, src))
         run_sprites.append({"id": name, "image": "assets/sprites/" + src,
                             "frames": Image.open(path).size[1] // 16, "walker": True,

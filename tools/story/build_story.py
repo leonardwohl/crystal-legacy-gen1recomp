@@ -219,7 +219,7 @@ def main():
         pic = "%s.png" % c["pic"]
         pal = os.path.join(a.base, "gfx/trainers/%s.png" % c["palette_from"]) \
             if c.get("palette_from") else None
-        colour_pic(os.path.join(a.legacy, "gfx/trainers", pic),
+        colour_pic(SP.gfx_path(a.legacy, "gfx/trainers/" + pic),
                    os.path.join(mod_dir, "assets", pic), pal)
         trs = party_rows(c["id"])
         for t in trs:

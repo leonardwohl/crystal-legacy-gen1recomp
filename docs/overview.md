@@ -120,6 +120,10 @@ PATH=path/to/rgbds:$PATH make -C base crystal
 python3 tools/story/build_story.py --base base --legacy legacy --rgbds path/to/rgbds --engine path/to/gen1recomp --work /tmp/story-work
 ```
 
+Sprite art the builds read (Story's overworld and trainer sprites, Quality of
+Life's running sprite) comes from this repository's `gfx/` folder when a file is
+there, and from the `--legacy` checkout otherwise.
+
 Everything ROM-derived (the built ROM, the patched scratch ROM, the decoded
 output) stays in `--work`. Only Crystal Legacy's own scripts and text end up
 in the mod.
