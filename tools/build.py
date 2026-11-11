@@ -1557,6 +1557,22 @@ def build_pokedex(ctx):
     """No data of its own: every page reads gen1recomp's live data, so the
     Pokédex shows Crystal Legacy's numbers when Pokémon Changes / Encounter
     Changes are installed, and vanilla's otherwise."""
+    import re
+    # NobodySociety's Customizable Pokédex Color, as Crystal Legacy maps it
+    # (engine/gfx/cgb_layouts.asm CheckPokedexColor): each colour reuses one of
+    # Crystal's predefined palettes, read here from gfx/sgb/predef.pal.
+    predef = {}
+    for line in open(os.path.join(ctx["base"], "gfx/sgb/predef.pal"), encoding="utf-8"):
+        m = re.match(r"\s*RGB\s+([\d,\s]+);\s*(PREDEFPAL_\w+)", line)
+        if m:
+            nums = [int(n) for n in re.findall(r"\d+", m.group(1))]
+            predef[m.group(2)] = [nums[i:i + 3] for i in range(0, 12, 3)]
+    colours = [("RED", "PREDEFPAL_POKEDEX"), ("BLUE", "PREDEFPAL_TRADE_TUBE"),
+               ("PURPLE", "PREDEFPAL_RB_PURPLEMON"), ("BROWN", "PREDEFPAL_RB_BROWNMON"),
+               ("GREEN", "PREDEFPAL_RB_GREENMON"), ("PINK", "PREDEFPAL_RB_PINKMON"),
+               ("YELLOW", "PREDEFPAL_RB_YELLOWMON"), ("CYAN", "PREDEFPAL_RB_CYANMON"),
+               ("GRAY", "PREDEFPAL_CGB_BADGE")]
+    data = {"dexColors": [{"name": n, "rgb": predef[p]} for n, p in colours if p in predef]}
     body = '''
   legacyPokedex(mod)'''
     lines = [
@@ -1571,10 +1587,13 @@ def build_pokedex(ctx):
         "**Area:** every place it's found -- grass by time of day, surfing, Old / "
         "Good / Super Rod (with day/night-only fish), Headbutt trees and Rock Smash -- "
         "with each method's odds and levels",
+        "**START** on an entry switches the picture between normal and shiny colours",
+        "**POKéDEX COLOR** (OPTIONS -> CRYSTAL LEGACY, or the MODS menu): red, blue, "
+        "purple, brown, green, pink, yellow, cyan or gray, as in Crystal Legacy",
         "Shows whatever data is loaded: with Legacy: Pokémon Changes installed, "
         "Crystal Legacy's stats; otherwise vanilla's",
     ]
-    return {}, body, lines
+    return data, body, lines
 
 
 DEX_RUNTIME = r"""
@@ -1885,13 +1904,80 @@ local PAGES = {
 }
 local LIST_TOP, LIST_ROWS = 4, 12
 
+-- Shiny view: kept for the session, flipped with START on an entry page.
+local shinyView = false
+
+local function dexPalette(name)
+  for _, c in ipairs(DATA.dexColors) do
+    if c.name == name then
+      local out = {}
+      for i, rgb in ipairs(c.rgb) do
+        out[i] = { math.floor(rgb[1] * 255 / 31 + 0.5), math.floor(rgb[2] * 255 / 31 + 0.5),
+                   math.floor(rgb[3] * 255 / 31 + 0.5) }
+      end
+      return out
+    end
+  end
+end
+
 local function legacyPokedex(mod)
+  local choices = {}
+  for _, c in ipairs(DATA.dexColors) do choices[#choices + 1] = { c.name, c.name } end
+  local DEX_OPTIONS = {
+    { key = "dexColor", label = "POKEDEX COLOR", type = "choice", default = "RED",
+      choices = choices },
+  }
+  mod.options:define(DEX_OPTIONS)
+  legacyOptionsPage(mod, DEX_OPTIONS, "POKEDEX")
   mod.exports.statsLines = statsLines
   mod.exports.pages = PAGES
+  mod.exports.dexPalette = dexPalette
+  mod.exports.shinyView = function() return shinyView end
   local ok, PokedexMenu = pcall(require, "src.ui.gen2.PokedexMenu")
   if not (ok and type(PokedexMenu) == "table" and PokedexMenu.update and PokedexMenu.drawPanel) then
     mod.log:warn("Pokedex screen not found; Legacy Pokedex pages disabled")
     return
+  end
+
+  -- The chosen colour: the dex reads its palette when it opens, so the
+  -- substitute goes in through the menu graphics it is built from.
+  if PokedexMenu.new then
+    local new = PokedexMenu.new
+    PokedexMenu.new = function(game, opts, ...)
+      local name = mod.options:get("dexColor") or "RED"
+      local pal = name ~= "RED" and dexPalette(name)
+      local base = (opts and opts.menuGfx) or (game and game.data and game.data.gen2MenuGfx)
+      if pal and type(base) == "table" and type(base.pokedex) == "table" then
+        local gfx = {}
+        for k, v in pairs(base) do gfx[k] = v end
+        local dex = {}
+        for k, v in pairs(base.pokedex) do dex[k] = v end
+        dex.palette = pal
+        gfx.pokedex = dex
+        local o = {}
+        for k, v in pairs(opts or {}) do o[k] = v end
+        o.menuGfx = gfx
+        opts = o
+      end
+      return new(game, opts, ...)
+    end
+  end
+
+  -- Shiny view: the entry picture asks Palettes.monColors for its colours;
+  -- while the view is on, that call asks for the species' shiny pair.
+  local okP, Palettes = pcall(require, "src.world.gen2.Palettes")
+  if okP and Palettes and Palettes.monColors and PokedexMenu.drawPic then
+    local monColors, forceShiny = Palettes.monColors, false
+    Palettes.monColors = function(data, species, shiny, ...)
+      return monColors(data, species, shiny or forceShiny, ...)
+    end
+    local drawPic = PokedexMenu.drawPic
+    PokedexMenu.drawPic = function(self, row, tx, ty, ownColors, ...)
+      forceShiny = shinyView and ownColors and true or false
+      local ok, err = pcall(drawPic, self, row, tx, ty, ownColors, ...)
+      forceShiny = false
+      if not ok then error(err, 0) end
+    end
   end
 
   local function pageLines(self)
@@ -1920,10 +2006,16 @@ local function legacyPokedex(mod)
       end
       return
     end
-    -- SELECT on an entry page (which vanilla leaves unused) opens the pages.
-    if input and self.view == "entry" and not self.newEntry and input:wasPressed("select") then
-      self.view, self.legacyPage, self.legacyScroll = "legacy", 1, 0
-      return
+    -- SELECT on an entry page (which vanilla leaves unused) opens the pages;
+    -- START (also unused there) flips the picture to shiny colours and back.
+    if input and self.view == "entry" and not self.newEntry then
+      if input:wasPressed("select") then
+        self.view, self.legacyPage, self.legacyScroll = "legacy", 1, 0
+        return
+      elseif input:wasPressed("start") then
+        shinyView = not shinyView
+        return
+      end
     end
     return update(self, ...)
   end
@@ -2073,7 +2165,7 @@ MODS = [
                 "sprites when that mod is installed."},
     {"id": "crystal_legacy_pokedex", "name": "Legacy: Pokédex",
      "category": "QOL", "games": ["crystal"], "build": build_pokedex,
-     "runtime": DEX_RUNTIME, "permissions": ["engine_internals"],
+     "runtime": LEGACY_OPTIONS + DEX_RUNTIME, "permissions": ["engine_internals"],
      "summary": "Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): "
                 "press SELECT on an entry for Stats, Moves, Evolution and Area."},
     {"id": "crystal_legacy_qol", "name": "Legacy: Quality of Life",

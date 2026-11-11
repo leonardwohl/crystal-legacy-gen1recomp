@@ -33,7 +33,8 @@ gen1recomp; the reason is given) · ➖ not needed in gen1recomp.
 | Pokémon Center nurse skips her speech after the first visit | `engine/events/std_scripts.asm` | ✅ | Quality of Life |
 | Day-Care keeps the experience earned (vanilla already heals; it reset exp to the level's minimum) | `engine/pokemon/move_mon.asm` | ✅ | Quality of Life |
 | Move Reminder | `engine/events/move_reminder.asm` | ✅ | Story Changes |
-| Exp. Share and Pokédex rework | various | ➖ left to other gen1recomp mods (by request) | – |
+| Exp. Share rework | various | ➖ left to other gen1recomp mods (by request) | – |
+| Pokédex pages, shiny view, Pokédex colour | various | ✅ Legacy: Pokédex | – |
 
 ## Vanilla bug fixes
 
@@ -72,7 +73,6 @@ its source. Ported fixes live in **Legacy: Bug Fixes**.
 
 ## Presentation only (not ported)
 
-Pokédex area / moves / evolution / stats pages and colours, per-species menu
-icons and their palettes (used here only for overworld Pokémon sprites),
+Per-species menu icons and their palettes (now in Legacy: Menu Icons),
 stats screen layout, trainer card, battle weather icon, hidden-TM move names,
 naming screen and map sign graphics, title and credits, text engine tweaks.

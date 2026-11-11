@@ -26,15 +26,15 @@ only translates their work into gen1recomp's mod format.
 | [Quality of Life](../mods/crystal_legacy_qol) | Run with B, reuse Repels, START sorts the PACK, quick nurse, Day-Care keeps exp (Crystal) | 🧪 new; each part can be toggled |
 | [Bug Fixes](../mods/crystal_legacy_fixes) | Legacy's fixes for vanilla bugs gen1recomp reproduces: catch bonuses, Fast / Moon / Love Ball, trainer AI (Crystal) | 🧪 new; more after the remaining checks |
 | [Menu Icons](../mods/crystal_legacy_icons) | Legacy's per-species party icons and colours; bring your own icons (copy Crystal Legacy's `gfx/icons` in as `icons/`) | 🧪 new |
-| [Pokédex](../mods/crystal_legacy_pokedex) | Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): SELECT on an entry for Stats, Level-up / TM/HM / Egg moves, Evolution and Area | 🧪 new |
+| [Pokédex](../mods/crystal_legacy_pokedex) | Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): SELECT on an entry for Stats, Level-up / TM/HM / Egg moves, Evolution and Area; START for shiny colours; a POKéDEX COLOR setting | 🧪 new |
 | [Story Changes](../mods/crystal_legacy_story) | 131 changed maps: Rocket story, Trainer House, fossils, legendaries, Red rematch, new sprites, dialogue | ✅ ready to try |
 
 Every mod works on its own, and they can be combined freely. Trainer Changes
 and Rematches are written so that either can be installed without the other.
 
 The headbutt tree and Rock Smash tables are identical in Crystal Legacy and
-vanilla, so there is nothing to port there. Exp. Share and Pokédex changes are
-left to existing gen1recomp mods.
+vanilla, so there is nothing to port there. Exp. Share changes are left to existing
+gen1recomp mods; the Pokédex is in Legacy: Pokédex.
 
 ## Install
 

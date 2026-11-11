@@ -10,6 +10,8 @@ Crystal Legacy's extra Pokédex pages (after Nayru62's Pokédex): press SELECT o
 - **Level-up moves**, **TM/HM moves** and **Egg moves** (up/down scrolls a long list)
 - **Evolution:** the whole family, with each step's method (level, item, trade, happiness by time of day, Tyrogue's stat check)
 - **Area:** every place it's found -- grass by time of day, surfing, Old / Good / Super Rod (with day/night-only fish), Headbutt trees and Rock Smash -- with each method's odds and levels
+- **START** on an entry switches the picture between normal and shiny colours
+- **POKéDEX COLOR** (OPTIONS -> CRYSTAL LEGACY, or the MODS menu): red, blue, purple, brown, green, pink, yellow, cyan or gray, as in Crystal Legacy
 - Shows whatever data is loaded: with Legacy: Pokémon Changes installed, Crystal Legacy's stats; otherwise vanilla's
 
 Games: crystal. Needs gen1recomp >=0.4.0 <0.5.0.

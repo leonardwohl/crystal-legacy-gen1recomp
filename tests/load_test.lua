@@ -199,6 +199,33 @@ local CHECKS = {
     T.eq(fake.legacyPage, 2, "pokedex: left goes back a page")
     pressed = "b" PokedexMenu.update(fake)
     T.eq(fake.view, "entry", "pokedex: B goes back to the entry")
+    -- START on an entry flips the picture to shiny colours and back; the
+    -- picture asks Palettes.monColors, which then answers with the shiny pair.
+    local Palettes = require("src.world.gen2.Palettes")
+    local pal = { pokemon = { CHIKORITA = { normal = { { 1, 1, 1 }, { 2, 2, 2 } },
+      shiny = { { 9, 9, 9 }, { 8, 8, 8 } } } } }
+    local function picColour()
+      local got
+      local inner = Palettes.monColors
+      Palettes.monColors = function(...) got = inner(...) return got end
+      pcall(PokedexMenu.drawPic, { palettes = pal, game = fake.game, picFor = function() end },
+        { species = "CHIKORITA", seen = true }, 1, 1, true)
+      Palettes.monColors = inner
+      return got and got[2][1]
+    end
+    T.eq(picColour(), 1, "pokedex: normal colours to start")
+    pressed = "start" PokedexMenu.update(fake)
+    T.eq(ex.shinyView(), true, "pokedex: START shows shiny colours")
+    T.eq(picColour(), 9, "pokedex: the picture asks for the shiny pair")
+    T.eq(Palettes.monColors(pal, "CHIKORITA")[2][1], 1, "pokedex: other screens keep normal colours")
+    pressed = "start" PokedexMenu.update(fake)
+    T.eq(ex.shinyView(), false, "pokedex: START again goes back")
+    -- Pokédex colour: Legacy's nine, from pokecrystal's predef.pal.
+    for _, name in ipairs({ "RED", "BLUE", "PURPLE", "BROWN", "GREEN", "PINK", "YELLOW", "CYAN", "GRAY" }) do
+      local c = ex.dexPalette(name)
+      T.eq(c ~= nil and #c == 4 and #c[1] == 3, true, "pokedex: colour " .. name)
+    end
+    T.eq(ex.dexPalette("BLUE")[2][3], math.floor(27 * 255 / 31 + 0.5), "pokedex: BLUE from predef.pal")
   end,
   crystal_legacy_icons = function()
     -- Data only: the mod ships Legacy's species -> icon file / palette map.
@@ -1188,7 +1215,8 @@ end
 -- settings is loaded.
 do
   local withSettings = { legacy_hard_mode = "HARD MODE", crystal_legacy_qol = "QUALITY OF LIFE",
-    crystal_legacy_fixes = "BUG FIXES", crystal_legacy_icons = "MENU ICONS" }
+    crystal_legacy_fixes = "BUG FIXES", crystal_legacy_icons = "MENU ICONS",
+    crystal_legacy_pokedex = "POKEDEX" }
   local expected = {}
   for _, id in ipairs(ids) do if withSettings[id] then expected[#expected + 1] = id end end
   if #expected > 0 then
@@ -1222,7 +1250,18 @@ do
         for _ in pairs(bucket) do saved = true end
       end
       T.eq(saved, true, "options: saved where the MODS menu reads it")
-      first.step(game) -- put it back
+      first.step(game, -1) -- put it back
+    end
+    -- Choice rows cycle both ways.
+    for _, r in ipairs(page and page.rows or {}) do
+      if r.label == "POKEDEX COLOR" then
+        T.eq(r.value(), "RED", "options: dex colour starts RED")
+        r.step(game, 1)
+        T.eq(r.value(), "BLUE", "options: right picks the next colour")
+        r.step(game, -1) r.step(game, -1)
+        T.eq(r.value(), "GRAY", "options: left wraps to the last colour")
+        r.step(game, 1)
+      end
     end
   end
 end

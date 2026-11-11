@@ -53,6 +53,20 @@ local function legacyOptionsPage(mod, schema, label)
             value = function() return current(entry, row) and "ON" or "OFF" end,
             step = function(game) save(game, id, row.key, not current(entry, row)) end,
           }
+        elseif row.type == "choice" and type(row.choices) == "table" and #row.choices > 0 then
+          local function at()
+            local v = current(entry, row)
+            for i, c in ipairs(row.choices) do if c[2] == v then return i end end
+            return 1
+          end
+          rows[#rows + 1] = {
+            label = row.label,
+            value = function() return tostring(row.choices[at()][1]) end,
+            step = function(game, dir)
+              local n = #row.choices
+              save(game, id, row.key, row.choices[(at() - 1 + (dir or 1)) % n + 1][2])
+            end,
+          }
         end
       end
     end
@@ -83,7 +97,8 @@ local function legacyOptionsPage(mod, schema, label)
         move(self, 1)
       elseif input:wasPressed("left") or input:wasPressed("right") or input:wasPressed("a") then
         local row = self.rows[self.index]
-        if row and row.step then row.step(self.game) end
+        local dir = input:wasPressed("left") and -1 or 1
+        if row and row.step then row.step(self.game, dir) end
       elseif input:wasPressed("b") then
         self.game.stack:pop()
         return
